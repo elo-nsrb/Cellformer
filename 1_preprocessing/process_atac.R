@@ -1,18 +1,27 @@
 library(ArchR)
+suppressPackageStartupMessages(library("argparse"))
 #getGeneAnnotation("hg38"#)
 addArchRGenome("hg38")                 # 
 
-pathDATA = "./scDATA/"
-pathSC = "./data/"
-metadata = read.csv("./data/annot_all_scATAC_detailed.csv")
+parser <- ArgumentParser()
+parser$add <- argument( "--path_data",
+                           help="Directory contining arrow files")
+parser$add <- argument("--output",  
+                        help="Output directory")
+parser$add <- argument("--metadata",  
+                        help="file containing cell annotations")
+args <- parser$parse_args()
+pathDATA = args$path_data#"./scDATA/"
+pathSC = args$output#"./data/"
+metadata = read.csv(args$metadata) #"./data/annot_all_scATAC_detailed.csv")
 Allfiles <- Sys.glob(file.path(pathDATA,"ArrowFiles/*.arrow"))
 proj <- ArchRProject( ArrowFiles = Allfiles, 
-                      outputDirectory = "scATAC-seq_detailed_6_ct",
+                      outputDirectory = "snATAC-seq",
                       copyArrows = TRUE 
                               )
-saveArchRProject(proj, "all_scatac_detailed_6_ct")
+saveArchRProject(proj, "snATAC-seq")
 #149011 cells
-proj = loadArchRProject("all_scatac_detailed_6_ct")
+proj = loadArchRProject("snATAC-seq")
 
 idxSample <- BiocGenerics::which(proj$cellNames %in% metadata$cellNames)
 celname = proj$cellNames[idxSample]    # 
@@ -46,16 +55,16 @@ proj
 
 # group cell per replicates
 proj@cellColData$SampleGroupby = paste0(proj$DonorID, proj$Region, proj$celltype)
-saveArchRProject(proj, "6_ct_no_doublets_no_nn_un")
-proj = loadArchRProject("6_ct_no_doublets_no_nn_un")
+saveArchRProject(proj, "snATAC-seq")
+proj = loadArchRProject("snATAC-seq")
 
 
 
 addArchRThreads(threads = 1)
 proj$Clusters = proj$SampleGroupby
 proj <- addGroupCoverages(ArchRProj = proj, groupBy = "Clusters", force=TRUE)
-saveArchRProject(proj, "6_ct_no_doublets_no_nn_un")
-proj = loadArchRProject("6_ct_no_doublets_no_nn_un")
+saveArchRProject(proj, "snATAC-seq")
+proj = loadArchRProject("snATAC-seq")
 pathToMacs2 <- findMacs2()
 proj <- addReproduciblePeakSet(
     ArchRProj = proj, groupby="Clusters", 
@@ -65,8 +74,8 @@ proj <- addPeakMatrix(proj, force=TRUE)
 addArchRThreads(threads = 30)
 proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "cisbp", name = "Motif")
 proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "JASPAR2020", name = "MotifJaspar")
-saveArchRProject(proj, "6_ct_no_doublets_no_nn_un")
-proj = loadArchRProject("6_ct_no_doublets_no_nn_un")
+saveArchRProject(proj, "snATAC-seq")
+proj = loadArchRProject("snATAC-seq")
 markersPeaks <- getMarkerFeatures(
     ArchRProj = proj, 
     useMatrix = "PeakMatrix", 
