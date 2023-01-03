@@ -111,7 +111,6 @@ def main():
     args = parser.parse_args()
     path = args.path 
     adata = read_adata(path)
-    proportion_peak(adata, path)
     adata = filter_matrix(adata, path, 
                   fdr_th = args.pvalue,
                     log2fc = args.FC)

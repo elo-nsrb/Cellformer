@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJECT_ROOT=/home/eloiseb/stanford_drive/data/ATAC-seq
+PROJECT_ROOT=./data/bulk_ATAC-seq
 MYPATH=./data/
 OUT_DIR=$MYPATH/count_from_sc_my_peaks_AD
 ANNOT=$MYPATH/peaks.saf
@@ -21,7 +21,7 @@ for type in $PROJECT_ROOT/AD/*; do
         echo $OUTPUT_DIR${type}_${region}_AD.peak_countMatrix.txt
         echo $PROJECT_ROOT/ATAC_seq/${type}_${region}_AD_*.bam
         echo $ANNOT
-        ~/subread/bin/featureCounts -a $ANNOT -F SAF -p -o $OUTPUT_DIR${type}_${region}_PD.peak_countMatrix.txt $PROJECT_ROOT/ATAC_seq/${type}_${region}_PD_*.bam
+        ~/subread/bin/featureCounts -a $ANNOT -F SAF -p -o $OUTPUT_DIR${type}_${region}_AD.peak_countMatrix.txt $PROJECT_ROOT/ATAC_seq/${type}_${region}_AD_*.bam
         rm $OUTPUT_DIR*.tmp
     done
 done
