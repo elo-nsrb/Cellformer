@@ -2,7 +2,7 @@
 An implementation of Cellformer from our publication: Berson et al. *"Whole genome deconvolution unveils Alzheimer’s resilient epigenetic signature"*
 
 ## Installation from source
-The lastest source version of Cellformer can be accessed by running the following commands:
+The lastest source version of Cellformer can be accessed by running the following command:
 
 ```
 git clone https://github.com/elo-nsrb/Cellformer.git
@@ -12,7 +12,7 @@ git clone https://github.com/elo-nsrb/Cellformer.git
 ## Usage
 ### 1. Peak calling and peak matrix creation
 
-To create a peak matrix compatible with Cellformer from fragment files, please use the following commands:
+To create a peak matrix compatible with Cellformer from single-cell ATAC-seq fragment files, please use the following commands:
 
 ```
 Rscript src/1-preprocessing/peakCalling.R \
@@ -25,16 +25,16 @@ python src/1-preprocessing/createPeakMatrix.py \
  ```
 
 ### 2. Create synthetic normalized data
-Synthetic dataset can be created from snATAC-seq peak matrix in annData format (see examples in [data](https://github.com/elo-nsrb/Cellformer/tree/main/data)):
+Synthetic dataset can be created from snATAC-seq peak matrix in [AnnData format](https://anndata.readthedocs.io/en/latest/) (see example in [data](https://github.com/elo-nsrb/Cellformer/tree/main/data)):
 
 ```
 python src/1-preprocessing/createSyntheticDataset.py \
- --path [path to data saved un 1. or location of the annData file] \
- --filename [name of the annData file]
+ --path [directory containing the peak matrix] \
+ --filename [peak matrix file]
 
 python 1-preprocessing/normalizePerCellCount.py 
- --path [path to data saved un 1. or location of the annData file] 
- --filename [name of the annData file]
+ --path [directory containing the peak matrix] 
+ --filename [peak matrix file]
  ```
 
 ### 3. Train Cellformer and deconvolute bulk
