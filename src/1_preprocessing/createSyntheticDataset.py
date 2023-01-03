@@ -9,6 +9,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--path', 
                         default="./data/",
                     help='Location to save pseudobulks data')
+parser.add_argument('--filename', 
+                        default="adata_peak_matrix.h5",
+                    help='Name of the anndata file')
 parser.add_argument('--name', default="pseudobulks",
                     help='Name pseudobulks data')
 
@@ -252,7 +255,8 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
 def main():
     args = parser.parse_args()
     dir_path = args.path
-    adata_ctrl = ad.read_h5ad(dir_path + "adata_peak_matrix.h5")
+    filename = args.filename
+    adata_ctrl = ad.read_h5ad(dir_path + filename)
     key_c = "chrm"
     adata_ = adata_ctrl
     name = args.name
