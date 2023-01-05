@@ -8,11 +8,18 @@ The lastest source version of Cellformer can be accessed by running the followin
 git clone https://github.com/elo-nsrb/Cellformer.git
 ```
 
+## Requirements
+
+* Python 3
+* PyTorch (version 1.10.0)
+* ArchR (R version 4.2.2)
+* Scikit-learn
+
 
 ## Usage
 ### 1. Peak calling and peak matrix creation
 
-To create a peak matrix compatible with Cellformer from single-cell ATAC-seq fragment files, please use the following command:
+To create a peak matrix from single-cell ATAC-seq fragment files, please use the following command:
 
 ```
 ./createPeakMatrix.sh --path_data ./data/ --input_dir ./scDATA/ --metadata ./data/scATAC_cell_annotations.csv
@@ -50,7 +57,7 @@ optional arguments:
 ```
 
 ### 3. Pretrained model inference and bulk deconvolution
-We provided the pretrained model used in the manuscript for future investigation in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer). The pretrained model can be used to deconvolute bulk peak matrix by running:
+We provided the pretrained model used in the manuscript in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer). The pretrained model can be used to deconvolute bulk peak matrix by running:
 
 ```
 ./deconvolution --model_path cellformer/ --peak_matrix ./data/CTRL_CAUD_AD.peak_countMatrix.txt
@@ -69,7 +76,7 @@ You can find an example of the expected peak matrix format `CTRL_CAUD_AD.peak_co
 
 ### 4. Model training
 
-Cellformer can be trained from scratch using a synthetic dataset and a configuration file `train.yml` (see an example in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer)) by running:
+Cellformer can be trained from scratch using a synthetic dataset and configuration file `train.yml` (see an example in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer)) by running:
 ```
 ./trainModel.sh --model_path cellformer/
 
@@ -83,7 +90,8 @@ optional arguments:
 ```
 Please modify the path to the data folder in `train.yml`.
 
-Validation of the model can done by running:
+### 5. Validation using pseudo single cell ATAC-seq data
+Validation of the model can done using pseudobulk data by running:
 
 ```
 ./validationModel.sh --model_path cellformer/ --peak_matrix ./data/validation_data/aggregated_sc_mixture.csv --groundtruth ./data/validation_data/agg_sc_separate.npz
