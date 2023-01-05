@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 help()
 {
     echo "Usage: createPeakMatrix [ -i | --input_dir INPUT_DIR]
@@ -9,7 +10,7 @@ help()
     exit 2
 }
 SHORT=i:,p:,m:,h
-LONG=input:,path_data:,metadata:,help
+LONG=input_dir:,path_data:,metadata:,help
 OPTS=$(getopt -a -n createPeakMatrix --option $SHORT --longoptions $LONG -- "$@")
 
 
@@ -28,8 +29,8 @@ do
         path_data="$2"
         shift 2
         ;;
-        -i | --input )
-        input="$2"
+        -i | --input_dir )
+        input_dir="$2"
         shift 2
         ;;
         -m | --metadata )
@@ -50,6 +51,6 @@ do
     esac
 done
 
-Rscript src/1-preprocessing/peakCalling.R --path_data $input --output $path_data --metadata $metadata
+Rscript ./src/1_preprocessing/peakCalling.R --path_data $input_dir --output $path_data --metadata $metadata
 
-python src/1-preprocessing/createPeakMatrix.py --path $path_data
+/usr/bin/python src/1_preprocessing/createPeakMatrix.py --path $path_data

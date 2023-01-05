@@ -48,7 +48,7 @@ def read_adata(path):
         width = rect.get_width()
         x = rect.get_x()
         y = rect.get_y()
-        label_text = f'{height:.0f}'  
+        label_text = '%s'%str(int(round(height,0)))#f'{height:.0f}'
         label_x = x + width / 2
         label_y = y + height / 2
 

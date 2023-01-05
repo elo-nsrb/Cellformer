@@ -2,7 +2,7 @@
 
 help()
 {
-    echo "Usage: createDataset [ -p | --path ]
+    echo "Usage: createDataset [ -p | --path_data PATH_DATA ]
                [ -n | --nbSamplesPerCase ]
                 [ -f | --matrixfilename MATRIXFILEMANE]
               [ -h | --help  ]"
@@ -21,6 +21,7 @@ fi
 
 eval set -- "$OPTS"
 
+matrixfilename="adata_peak_matrix.h5"
 while :
 do
     case "$1" in
@@ -49,15 +50,12 @@ do
         ;;
     esac
 done
-if [-z "$matrixfilename"]
-then
-    matrixfilename="adata_peak_matrix.h5"
-fi
-python 1_preprocessing/createSyntheticDataset.py --path $pathData --nb_cells_per_case $nbSamplesPerCase --nb_cores 10 --filename $matrixfilename
+
+python src/1_preprocessing/createSyntheticDataset.py --path $pathData --nb_cells_per_case $nbSamplesPerCase --nb_cores 10 --filename $matrixfilename
 
 echo "Sample normalization ..."
 
-python 1_preprocessing/normalizePerCellCount.py --path $pathData --filename $matrixfilename
+python src/1_preprocessing/normalizePerCellCount.py --path $pathData --filename $matrixfilename
 
 echo "clean directory ..."
 rm $pathData/pseudobulks_nb_cell*

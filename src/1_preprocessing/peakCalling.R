@@ -1,7 +1,7 @@
 library(ArchR)
 suppressPackageStartupMessages(library("argparse"))
 #getGeneAnnotation("hg38"#)
-addArchRGenome("hg38")                 # 
+addArchRGenome("hg19")                 # 
 
 parser <- ArgumentParser()
 parser$add_argument( "--path_data",
@@ -36,7 +36,9 @@ metadata = metadata[proj$cellNames,]
 ##125184
 proj = addCellColData(proj, data=metadata$celltype2, cell=proj$cellNames, name="celltype")
 proj = addCellColData(proj, data=metadata$Donor_ID, cell=proj$cellNames, name="DonorID")
-proj = addCellColData(proj, data=metadata$Region, cell=proj$cellNames, name="Region") # 
+if (!is.null(metadata$Region)){
+    proj = addCellColData(proj, data=metadata$Region, cell=proj$cellNames, name="Region") # 
+}
 proj = addCellColData(proj, data=metadata$barcode, cell=proj$cellNames, name="Barcode")
 
 #remove Doublets
@@ -55,7 +57,11 @@ proj = proj[nocel,]#122524
 proj
 
 # group cell per replicates
-proj@cellColData$SampleGroupby = paste0(proj$DonorID, proj$Region, proj$celltype)
+if (!is.null(metadata$Region)){
+    proj@cellColData$SampleGroupby = paste0(proj$DonorID, proj$Region, proj$celltype)
+} else {
+    proj@cellColData$SampleGroupby = paste0(proj$DonorID, proj$celltype)
+}
 saveArchRProject(proj, "snATAC-seq")
 proj = loadArchRProject("snATAC-seq")
 
@@ -73,8 +79,8 @@ proj <- addReproduciblePeakSet(
     force=TRUE)
 proj <- addPeakMatrix(proj, force=TRUE)
 addArchRThreads(threads = 30)
-#proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "cisbp", name = "Motif")
-#proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "JASPAR2020", name = "MotifJaspar")
+proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "cisbp", name = "Motif")
+proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "JASPAR2020", name = "MotifJaspar")
 saveArchRProject(proj, "snATAC-seq")
 proj = loadArchRProject("snATAC-seq")
 markersPeaks <- getMarkerFeatures(
