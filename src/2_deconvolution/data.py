@@ -7,7 +7,6 @@ from tqdm import tqdm
 import pandas as pd
 import copy
 import scanpy as sc
-import episcanpy as epsc
 import torch
 from torch.utils.data import DataLoader, Dataset
 import random

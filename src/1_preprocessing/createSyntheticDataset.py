@@ -12,6 +12,12 @@ parser.add_argument('--path',
 parser.add_argument('--filename', 
                         default="adata_peak_matrix.h5",
                     help='Name of the anndata file')
+parser.add_argument('--nb_cells_per_case', 
+                help="Number of synthetic samples created per individual",
+                default=500, type=int)
+parser.add_argument('--nb_cores', 
+                help="Number of cores",
+                default=5, type=int)
 parser.add_argument('--name', default="pseudobulks",
                     help='Name pseudobulks data')
 
@@ -186,9 +192,12 @@ def loopPerSample(it,i, dataset, subjects, nb_genes, dir_path,
 
 
 def createALLBulkDataset(dataset, nb_genes, dir_path,
-                        celltypes, save_per_samples=True,
-                        nb_sample_per_subject=10000,sample_size=500,
-                        with_sparse=True, only_sparse=False, savename="",
+                        celltypes,
+                        save_per_samples=True,
+                        nb_sample_per_subject=10000,
+                        sample_size=500,
+                        with_sparse=True,
+                        only_sparse=False, savename="",
                         pure=False, num_cores=3):
 
 
@@ -196,10 +205,10 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
     if save_per_samples:
         Parallel(n_jobs=num_cores)(delayed(loopPerSample)(it, i, 
                         dataset, subjects, nb_genes, dir_path,
-                        celltypes, 
+                        celltypes,
                         nb_sample_per_subject=nb_sample_per_subject,
                         sample_size=sample_size,
-                        with_sparse=with_sparse, 
+                        with_sparse=with_sparse,
                         only_sparse=only_sparse, savename=savename,
                         pure=pure) for i,it in enumerate(subjects))
         return None, None, None
@@ -256,6 +265,9 @@ def main():
     args = parser.parse_args()
     dir_path = args.path
     filename = args.filename
+    nb_cell_per_case = int(args.nb_cells_per_case)
+    nb_cores = int(args.nb_cores)
+    print(nb_cores)
     adata_ctrl = ad.read_h5ad(dir_path + filename)
     key_c = "chrm"
     adata_ = adata_ctrl
@@ -266,23 +278,23 @@ def main():
     print(celltypes)
     mean_exp = adata_.X.mean(0)
     np.save(dir_path + name + "_mean_exp.npy", mean_exp)
-    df, df_lables, separate_signals = createALLBulkDataset(adata_,
+    df, df_lables, separate_signals = createALLBulkDataset(
+                            adata_,
                             adata_.X.shape[1], dir_path,
-                            celltypes,save_per_samples=True,
-                            nb_sample_per_subject=500,
-                            sample_size=None, savename=name, 
+                            celltypes,
+                            save_per_samples=True,
+                            nb_sample_per_subject=nb_cell_per_case,
+                            sample_size=None, 
+                            savename=name, 
                             with_sparse=True,
-                            num_cores=5)
+                            num_cores=nb_cores
+                            )
     #df, df_lables, separate_signals = createALLBulkDataset(adata_,
     #                        adata_.X.shape[1], dir_path, 
     #                        celltypes,save_per_samples=True,
     #                        nb_sample_per_subject=100,sample_size=None,
     #                        savename=name, only_sparse=True, pure=True)
 
-    if False:
-        df, df_lables, separate_signals = createALLBulkDataset(adata_,
-                adata_.X.shape[1], dir_path, nb_sample_per_subject=2000,
-                    sample_size=100, savename=name, with_sparse=False)
 
 if __name__ == "__main__":
     main()

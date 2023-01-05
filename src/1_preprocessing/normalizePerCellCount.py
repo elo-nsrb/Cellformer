@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
     dir_path = args.path
     filename = args.filename
-    adata_ctrl = ad.read_h5ad(dir_path + filename)
+    adata_ = ad.read_h5ad(dir_path + filename)
     key_c = "chrm"
     name = args.name
     annot = adata_.var

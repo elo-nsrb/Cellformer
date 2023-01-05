@@ -1,5 +1,5 @@
 #steroid is based on PyTorch and PyTorch-Lightning.
-import comet_ml
+#import comet_ml
 import torch
 import torch.nn as nn
 from torch import optim
@@ -24,7 +24,7 @@ from asteroid.engine import System
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='final.pth.tar',
                     help='Location to save best validation model')
-parser.add_argument("--model", default="ConvTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
+parser.add_argument("--model", default="SepFormerTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
 parser.add_argument("--gpu", default="2")
 parser.add_argument("--resume_ckpt", default="last.ckpt", help="Checkpoint path to load for resume-training")
 parser.add_argument("--resume", action="store_true", help="Resume-training")
