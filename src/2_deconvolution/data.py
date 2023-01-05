@@ -67,7 +67,7 @@ class SeparationDataset(Dataset):
             self.hdf_dir = os.path.join(hdf_dir, partition + ".hdf5")
             self.level = len(self.celltypes)
         print(self.hdf_dir)
-        print(self.level)
+        #print(self.level)
         self.celltypes_to_use = celltype_to_use
         self.in_memory = in_memory
         print(self.celltypes)
@@ -82,8 +82,8 @@ class SeparationDataset(Dataset):
              ) = gatherCelltypes(celltype_to_use, 
                                             separate_signal, self.celltypes)
 
-            print(self.celltype) 
-            print(self.celltypes_to_use)
+            #print(self.celltype) 
+            #print(self.celltypes_to_use)
             if binarize:
                 separate_signal = binarizeSeparateSignal(separate_signal,
                                                     self.celltypes)
@@ -630,7 +630,7 @@ def gatherCelltypesOLD(celltype_to_use, separate_signal, celltypes):
                 new_ind = [i for i,it in enumerate(celltypes) if it not in ["INH"]]
                 celltypes[get_index[0]] = "Neurons"
                 celltypes.remove("INH")
-                print(celltypes)
+                #print(celltypes)
                 separate_signal = tmp[:,new_ind,:]
             if "OPCs-Oligo" in celltype_to_use:
                 get_index = [i for i,it in enumerate(celltypes) if it in ["OPCs","OLD"]]
@@ -640,7 +640,7 @@ def gatherCelltypesOLD(celltype_to_use, separate_signal, celltypes):
                 new_ind = [i for i,it in enumerate(celltypes) if it not in ["OLD"]]
                 celltypes[get_index[0]] = "OPCs-Oligo"
                 celltypes.remove("OLD")
-                print(celltypes)
+                #print(celltypes)
                 separate_signal = tmp[:,new_ind,:]
             if "AST-OPCs-OLD" in celltype_to_use:
                 get_index = [i for i,it in enumerate(celltypes) if it in ["AST","OPCs","OLD"]]
@@ -651,7 +651,7 @@ def gatherCelltypesOLD(celltype_to_use, separate_signal, celltypes):
                 celltypes[get_index[0]] = "AST-OPCs-OLD"
                 celltypes.remove("OLD")
                 celltypes.remove("OPCs")
-                print(celltypes)
+                #print(celltypes)
                 separate_signal = tmp[:,new_ind,:]
             if "Glia" in celltype_to_use:
                 get_index = [i for i,it in enumerate(celltypes) if it in [ "AST","MIC", "OPCs","OLD"]]
@@ -663,10 +663,10 @@ def gatherCelltypesOLD(celltype_to_use, separate_signal, celltypes):
                 celltypes.remove("OLD")
                 celltypes.remove("MIC")
                 celltypes.remove("OPCs")
-                print(celltypes)
+                #print(celltypes)
                 separate_signal = tmp[:,new_ind,:]
-                print(new_ind)
-                print(separate_signal.shape)
+                #print(new_ind)
+                #print(separate_signal.shape)
 
 
             celltypes_to_use = [i for i,it in enumerate(celltypes) if it in celltype_to_use]
@@ -675,21 +675,21 @@ def gatherCelltypesOLD(celltype_to_use, separate_signal, celltypes):
         return celltypes_to_use, separate_signal, celltypes
 
 def gatherCelltypes(celltype_to_use, separate_signal, celltypes):
-    print(separate_signal.max())
+    #print(separate_signal.max())
     if celltype_to_use is not None:
         new_separate = np.zeros((separate_signal.shape[0],
                             len(celltype_to_use),
                              separate_signal.shape[2]))
         for ind,ct in enumerate(celltype_to_use):
-            print(ct)
+            #print(ct)
             if ct =="Neurons" :
                 get_index = [i for i,it in enumerate(celltypes) if it in ["EX","INH"]]
                 tmp = separate_signal[:,get_index[0],:].copy()
                 for i in range(1, len(get_index)):
                     tmp += separate_signal[:,get_index[i],:] 
-                print(celltypes)
+                #print(celltypes)
                 new_separate[:,ind,:] = tmp.copy()
-                print(new_separate.max())
+                #print(new_separate.max())
             elif ct=="OPCs-Oligo" :
                 get_index = [i for i,it in enumerate(celltypes) if it in ["OPCs","OLD"]]
                 tmp = separate_signal[:,get_index[0],:].copy()
@@ -713,9 +713,9 @@ def gatherCelltypes(celltype_to_use, separate_signal, celltypes):
                 tmp = separate_signal[:,get_index[0],:].copy()
                 for i in range(1, len(get_index)):
                     tmp += separate_signal[:,get_index[i],:] 
-                print(celltypes)
+                ##print(celltypes)
                 new_separate[:,ind,:] = tmp.copy()
-                print(new_separate.max())
+                #print(new_separate.max())
             else:
                 get_index = [i for i,it in enumerate(celltypes) if it in [ct]]
                 new_separate[:,ind,:] = separate_signal[:,get_index[0],:]

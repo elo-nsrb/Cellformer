@@ -39,7 +39,7 @@ from network import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', default='final.pth.tar',
                     help='Location to save best validation model')
-parser.add_argument("--model", default="ConvTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
+parser.add_argument("--model", default="SepFormer2TasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
 parser.add_argument("--gpu", default="2")
 parser.add_argument("--use_gpu", type=int, default=0, help="Whether to use the GPU for model execution")
 parser.add_argument("--out_dir", type=str, default="results/best_model", help="Directory in exp_dir where the eval results will be stored")
@@ -179,10 +179,10 @@ def main(args):
         separate = np.load(args.groundtruth)["mat"]
         if len(separate.shape)<2:
             separate = np.expand_dims(separate, 0)
-        print(separate.shape)
+        #print(separate.shape)
         _, separate = gatherCelltypes(celltypes, 
                                     separate, opt["datasets"]["celltypes"] )
-        print(separate.shape)
+        #print(separate.shape)
         if opt['datasets']["normalizeMax"]:
             separate = separate/separate.max()
             thres = 0
@@ -191,7 +191,7 @@ def main(args):
         sources = tensors_to_device(sources, device=model_device)
         testset_idx = mixtures[mixtures.Sample_num == SAMPLE_ID_TEST].index.values.tolist() 
         trainset_idx = mixtures[mixtures.Sample_num != SAMPLE_ID_TEST].index.values.tolist() 
-        print(trainset_idx)
+        #print(trainset_idx)
         plot_pred_gt_reg(separate[trainset_idx,:,:], 
                 sources_res_np[trainset_idx, :,:], savedir,
                         celltypes, name + "before_thresh_train_only",  
@@ -224,8 +224,8 @@ def main(args):
                             name=name + "Masked_train_only", 
                             strict=strict,
                             normalize=opt['datasets']["normalizeMax"])
-        print("optimal thresholds:")
-        print(optimal_thrs)
+        #print("optimal thresholds:")
+        #print(optimal_thrs)
         for k, ct in enumerate(celltypes):
             df_ = pd.DataFrame(sources_res_np[:,k,:], 
                                 index=mixtures.index, 

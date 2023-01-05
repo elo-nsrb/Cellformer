@@ -72,8 +72,8 @@ def plot_aurc_from_sig(input_signals, pred_signals, celltypes, savedir,
             gmeanOpt = round(gmean[index], ndigits = 4)
             fprOpt = round(fpr[index], ndigits = 4)
             tprOpt = round(tpr[index], ndigits = 4)
-            print('Best Threshold: {} with G-Mean: {}'.format(thresholdOpt, gmeanOpt))
-            print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
+            #print('Best Threshold: {} with G-Mean: {}'.format(thresholdOpt, gmeanOpt))
+            #print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
 
             # Calculate the Youden's J statistic
             youdenJ = tpr - fpr
@@ -84,8 +84,8 @@ def plot_aurc_from_sig(input_signals, pred_signals, celltypes, savedir,
             youdenJOpt = round(gmean[index], ndigits = 4)
             fprOpt = round(fpr[index], ndigits = 4)
             tprOpt = round(tpr[index], ndigits = 4)
-            print('Best Threshold: {} with Youden J statistic: {}'.format(thresholdOpt, youdenJOpt))
-            print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
+            #print('Best Threshold: {} with Youden J statistic: {}'.format(thresholdOpt, youdenJOpt))
+            #print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
 
             ## locate the index of the largest f score
             precision, recall, thresholds = precision_recall_curve(y_true,
@@ -95,15 +95,12 @@ def plot_aurc_from_sig(input_signals, pred_signals, celltypes, savedir,
             ix = np.argmax(fscore)
             opt_threshold = thresholds[ix]
             optimal_thr.append(opt_threshold)
-            print('Best Threshold=%f, F-Score=%.3f' % (thresholds[ix], 
-                                                            fscore[ix]))
+            #print('Best Threshold=%f, F-Score=%.3f' % (thresholds[ix], fscore[ix]))
             fscoreOpt = round(fscore[ix], ndigits = 4)
             recallOpt = round(recall[ix], ndigits = 4)
             precisionOpt = round(precision[ix], ndigits = 4)
-            print('Recall: {}, Precision: {}'.format(recallOpt,
-                                                    precisionOpt))
-            no_skill = len(y_true[y_true==1]) / len(y_true)
-            print("no skills : " +str(no_skill))
+            #print('Recall: {}, Precision: {}'.format(recallOpt, precisionOpt)) no_skill = len(y_true[y_true==1]) / len(y_true)
+            #print("no skills : " +str(no_skill))
             # plot the no skill precision-recall curve
             axes[idx].plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
             axes[idx].legend()
@@ -114,7 +111,7 @@ def plot_aurc_from_sig(input_signals, pred_signals, celltypes, savedir,
             overall_auprc.append(auc_precision_recall)
         opr = np.mean(overall_auprc)
         fig.suptitle("Mean :%s"%str(opr))
-        print("mean opr " + str(opr))
+        #print("mean opr " + str(opr))
         fig.tight_layout()
         plt.savefig(savedir + "/prauc_" + str(threshold) +"_" + str(opr) + "_" + binarize_type + name + ".png", bbox_inches="tight")
         plt.close("all")
@@ -245,8 +242,8 @@ def plot_pred_gt(input_signals, pred_signals, savedir, celltypes, name,
                             min(input_signals.shape[0], nb_samples))
                 if key not in ["distToTSS", "distToGeneStart"]:
                     plt_list= []
-                    print(key)
-                    print(set(an))
+                    #print(key)
+                    #print(set(an))
                     coll = [colors[ant] for ant in an]
 
                     #plot_idx = np.random.permutation(tt.shape[0])
@@ -304,11 +301,9 @@ def plot_pred_gt_reg(input_signals, pred_signals,
             estimator.fit(tt.reshape(-1,1), pp)
             pred_lig = estimator.predict(tt.reshape(-1,1))
             #print('Coefficient: \n', estimator.coef_)
-            print('Mean squared error: %.2f'
-                          % mean_squared_error(pred_lig, pp))
+            #print('Mean squared error: %.2f' % mean_squared_error(pred_lig, pp))
             rrr = r2_score(pp, pred_lig)
-            print('Coefficient of determination: %.2f'
-                          %rrr)
+            #print('Coefficient of determination: %.2f' %rrr)
             x_mean = np.mean(tt)
             sse = np.sum(np.square(pp - pred_lig))
             mse = sse / (len(pp) - 2)
@@ -323,9 +318,9 @@ def plot_pred_gt_reg(input_signals, pred_signals,
                 axes[it].plot(tt, pred_lig, color=colors[nm], linewidth=lw,
                          label='%s (Coeff determination: %.2f)' % (nm, rrr))
         sp, pval = stats.spearmanr(tt, pp)
-        print("spearman, pval: %f, %s"%(sp, pval))
+        #print("spearman, pval: %f, %s"%(sp, pval))
         r2 = r2_score(tt, pp)
-        print("R2: %f"%(r2))
+        #print("R2: %f"%(r2))
         #axes[it].scatter(tt, pp)
         color="pink"
         axes[it].plot(tt, tt, "--",color="red", label = "x=x Rho: %f, R2: %f"%(sp, r2), linewidth=2)
@@ -618,10 +613,8 @@ def spearmancorrAnalysis(true, pred, celltypes, savedir,
                     sp=1
                 else:
                     sp=0
-                                                    #print("ok")
-                                                              
             spearman_correlation[it,j] = sp
-    print("number of nan : %d"%nb_nan)
+    #print("number of nan : %d"%nb_nan)
     ax = sns.clustermap(spearman_correlation,figsize=(22,8),yticklabels=celltypes, vmin=0.4 )#, ax=ax)
     plt.savefig(savedir + "/clustermap_spearman_" + name + ".png", bbox_inches="tight")
     plt.close("all")
@@ -633,7 +626,6 @@ def spearmancorrAnalysis(true, pred, celltypes, savedir,
         g = sns.scatterplot(x = np.log(true.mean(0)[i]),
                             y=spearman_correlation[i], ax=axes[i],
                             hue=hue)
-            
         #g.axes.legend_.set_title("spearman correlation %s"%celltypes[1-i])
                     #ax.axvline(x=np.log(1) , ymin=0.01, ymax=1, color="k", label="mean > 1", )
         axes[i].set_xlabel("log mean count per type of cells")
@@ -657,11 +649,11 @@ def defineMask(input_signals, pred_signals, celltypes,
             pp = pred_signals[:,it,:]*tmp[it,:]
             pp = pp.ravel()
             tt = input_signals[:,it,:].ravel()
-            print("threshold %f"%th)
+            #print("threshold %f"%th)
             sp, pval = stats.spearmanr(tt, pp)
-            print("spearman, pval: %f, %s"%(sp, pval))
+            #print("spearman, pval: %f, %s"%(sp, pval))
             r2 = r2_score(tt, pp)
-            print("R2: %f"%(r2))
+            #print("R2: %f"%(r2))
             if math.isnan(sp):
                 sp = 0
             if math.isnan(r2):

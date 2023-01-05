@@ -12,25 +12,25 @@ git clone https://github.com/elo-nsrb/Cellformer.git
 ## Usage
 ### 1. Peak calling and peak matrix creation
 
-To create a peak matrix compatible with Cellformer from single-cell ATAC-seq fragment files, please use the following commands:
+To create a peak matrix compatible with Cellformer from single-cell ATAC-seq fragment files, please use the following command:
 
 ```
-./createPeakMatrix.sh -p ./data/ -i ./scDATA/ -m ./data/scATAC_cell_annotations.csv
+./createPeakMatrix.sh --path_data ./data/ --input_dir ./scDATA/ --metadata ./data/scATAC_cell_annotations.csv
 
 usage: createDataset -p | --path_data PATH_DATA
                      -i | --input_dir INPUT_DIR
                      -m | --metadata METADATA
                      [ -h | --help]
 positional arguments:
--p, --path_data         path to save the peak Matrix
--i, --input_dir         directory including the input arrow files
--m, --metadata          metadata with cell annotations
+-p, --path_data         Path to save the peak Matrix
+-i, --input_dir         Directory with single cell arrow files
+-m, --metadata          Metadata with cell annotations
 
 optional arguments:
 -h, --help              show help message and exit
 ```
 
-### 2. Create synthetic normalized data
+### 2. Synthetic dataset generation
 Synthetic dataset can be created from snATAC-seq peak matrix in [AnnData format](https://anndata.readthedocs.io/en/latest/) (see example in [data](https://github.com/elo-nsrb/Cellformer/tree/main/data)):
 
 ```
@@ -41,12 +41,62 @@ usage: createDataset -p | --path_data PATH_DATA
                      [ -f | --matrixfilename MATRIXFILEMANE]
                      [ -h | --help]
 positional arguments:
--p, --path_data         path to directory including peak Matrix
+-p, --path_data         Path to directory with the peak matrix
 -n, --nbCellsPerCase    Number of synthetic samples per individual
 
 optional arguments:
--h, --help              show help message and exit
--f, --matrixfilename    name of peak matrix file, default=adata_peak_matrix.h5
+-h, --help              Show help message and exit
+-f, --matrixfilename    Name of peak matrix file, default=adata_peak_matrix.h5
 ```
 
-### 3. Train Cellformer and deconvolute bulk
+### 3. Pretrained model inference and bulk deconvolution
+We provided the pretrained model used in the manuscript for future investigation in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer). The pretrained model can be used to deconvolute bulk peak matrix by running:
+
+```
+./deconvolution --model_path cellformer/ --peak_matrix ./data/CTRL_CAUD_AD.peak_countMatrix.txt
+
+Usage: deconvolution  -p | --model_path MODEL_PATH
+                      -m | --peak_matrix PEAK_MATRIX
+                      [ -h | --help  ]"
+positional arguments:
+-p, --model_path        Path to model directory with train.yml
+-m, --peak_matrix       Peak matrix to deconvolute
+
+optional arguments:
+-h, --help              Show help message and exit
+```
+You can find an example of the expected peak matrix format `CTRL_CAUD_AD.peak_countMatrix.txt` in [data](https://github.com/elo-nsrb/Cellformer/tree/main/data).
+
+### 4. Model training
+
+Cellformer can be trained from scratch using a synthetic dataset and a configuration file `train.yml` (see an example in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer)) by running:
+```
+./trainModel.sh --model_path cellformer/
+
+usage: trainModel -p | --model_path MODEL_PATH
+                  [ -h | --help]
+positional arguments:
+-p, --model_path        Path to model directory with train.yml
+
+optional arguments:
+-h, --help              Show help message and exit
+```
+Please modify the path to the data folder in `train.yml`.
+
+Validation of the model can done by running:
+
+```
+./validationModel.sh --model_path cellformer/ --peak_matrix ./data/validation_data/aggregated_sc_mixture.csv --groundtruth ./data/validation_data/agg_sc_separate.npz
+
+Usage: validationModel  -p | --model_path MODEL_PATH
+                        -m | --peak_matrix PEAK_MATRIX
+                        -g | --groundtruth GROUNDTRUTH
+                        [ -h | --help  ]"
+positional arguments:
+-p, --model_path        Path to model directory with train.yml
+-m, --peak_matrix       Peak matrix to deconvolute
+-m, --groundtruth       Ground truth file
+
+optional arguments:
+-h, --help              Show help message and exit
+```

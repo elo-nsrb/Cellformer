@@ -9,7 +9,7 @@ help()
     exit 2
 }
 SHORT=p:,n:,f:,h
-LONG=path:,nbSamplesPerCase:,matrixfilename:,help
+LONG=path_data:,nbSamplesPerCase:,matrixfilename:,help
 OPTS=$(getopt -a -n createDataset --option $SHORT --longoptions $LONG -- "$@")
 
 
@@ -25,7 +25,7 @@ matrixfilename="adata_peak_matrix.h5"
 while :
 do
     case "$1" in
-        -p | --path )
+        -p | --path_data )
         pathData="$2"
         shift 2
         ;;
