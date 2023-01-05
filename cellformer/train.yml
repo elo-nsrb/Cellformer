@@ -1,0 +1,95 @@
+datasets:
+  add_pure: false
+  binarize: false
+  binarize_input: false
+  celltype_to_use:
+  - AST
+  - EXC
+  - INH
+  - MIC
+  - OPCs
+  - OLD
+  celltypes:
+  - AST
+  - EXC
+  - INH
+  - MIC
+  - OPCs
+  - OLD
+    #  chunk_len: 900
+    #chunk_size: 900
+  cut_val: 0.2
+  dataset_dir: ./data/
+  filter_intergenic: false
+  fs: 1
+  hdf_dir: .data/hdf/
+  holdout: true
+  name: cell_count_norm_pseudobulks
+  normalize: false
+  normalizeMax: true
+  num_workers: 1
+  offset_input: 1
+  only_training: false
+  ratio: false
+  ratio_input: false
+  sample_id_test: '13_0419'
+  sample_id_val: null
+filterbank:
+  kernel_size: 16
+  n_filters: 64
+  stride: 8
+gpu_ids:
+- 0
+- 1
+- 2
+is_train: true
+masknet:
+  bidirectional: true
+  chunk_size: 250
+  dropout: 0
+  ff_activation: relu
+  ff_hid: 256
+  hop_size: 125
+  in_chan: 64
+  mask_act: relu
+  n_repeats: 1
+  n_src: 6
+  norm_type: gLN
+  out_chan: 64
+name: DPTNet
+optim:
+  lr: 0.001
+  optimizer: adam
+  weight_decay: 0.0
+optimizer_kwargs:
+  lr: 0.001
+  weight_decay: 1.0e-05
+positional arguments: {}
+resume:
+  path: cellformer/
+  resume_state: false
+scheduler:
+  d_model: 64
+  noam_scale: 0.2
+  steps_per_epoch: 10000
+train:
+  checkpoint: SepFormer
+  clip_norm: null
+  factor: 0.5
+  logging_period: 200
+  min_lr: 1.0e-06
+  num_epochs: 50
+  optimizer: adam
+training:
+  accumulate_grad_batches: 3
+  batch_size: 32
+  comet: false
+  early_stop: true
+  epochs: 30
+  gradient_clipping: 5
+  half_lr: true
+  loss: mse_no_pit
+  num_workers: 8
+  patience: 5
+  save_epochs: 1
+  weights: None
