@@ -58,9 +58,9 @@ echo "Sample normalization ..."
 python src/1_preprocessing/normalizePerCellCount.py --path $pathData --filename $matrixfilename
 
 echo "clean directory ..."
-rm $pathData/pseudobulks_nb_cell*
-rm $pathData/pseudobulks_celltype_specific_subject*
-rm $pathData/pseudobulks_labels_data_subject*
-rm $pathData/pseudobulks_data_subject*
+rm $pathData/pseudobulks_*
+#rm $pathData/pseudobulks_celltype_specific_subject*
+#rm $pathData/pseudobulks_labels_data_subject*
+#rm $pathData/pseudobulks_data_subject*
 
 echo "Done!"

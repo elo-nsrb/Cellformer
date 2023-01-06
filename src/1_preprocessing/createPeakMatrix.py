@@ -7,17 +7,13 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib.transforms as transforms
-import seaborn as sns
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 import scipy.stats as stats
 from scipy.stats import mannwhitneyu
 from scipy.stats import wilcoxon
-import scanpy as sc
 import anndata as ad
 from scipy.sparse import csr_matrix
-import episcanpy.api as epi
-from tqdm import tqdm
 import statsmodels.stats.multitest as multi
 import sys
 import argparse
@@ -40,6 +36,8 @@ def read_adata(path):
     mtx = path + "my_mat.mtx"
     adata = ad.read_mtx(mtx).T
     col = pd.read_csv(path + "coldata.csv", index_col=None)
+    if not "Region" in col.columns.tolist():
+        col["Region"] = "None"
     gg = col.groupby(["DonorID", "Region", "celltype"]).size()
     ax = gg.unstack(fill_value=0).plot.bar(stacked=True,figsize=(20, 10),colormap='PiYG')
     for rect in ax.patches:
