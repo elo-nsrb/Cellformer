@@ -1,15 +1,17 @@
-#Additional tools
+# Additional tools
 
 ### Annotate peaks and merge with ArchR annotations
 
-`Rscript 1-preprocessing/annotPeakChipSeeker.R --path_data ./data/
+We annotated peak.tsv from ArchR using the followind commands:
+`python addPeakHeader.py --path_data ./data/
+Rscript annotPeakChipSeeker.R --path_data ./data/
+python mergeAnnotations.py --path_data ./data/`
 
-bash convertTSV2SAF.sh
-python 1-preprocessing/addPeakHeader.py
-python 1-preprocessing/mergeAnnotations.py`
+Please set `path_data` as the path to the folder with peak matrix and synthetic data.
 
-## Create bulk ATAC-seq peak matrix
+### Create bulk ATAC-seq peak matrix
 
+We created bulk peak matrix using `FeatureCounts`:
 `bash 1-preprocessing/runFeatureCounts.sh`
 
 

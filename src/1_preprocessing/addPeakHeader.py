@@ -4,14 +4,14 @@ import numpy as np
 import argparse
 import subprocess
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', default="./data/",
-                    help='Location to save pseudobulks data')
+parser.add_argument('--path_data', default="./data/",
+                    help='Directory with peaks.tsv')
 
 
 
 def main():
     args = parser.parse_args()
-    path = args.path
+    path = args.path_data
     peak_path = os.path.join(path, "peaks.tsv")
     peaks = pd.read_csv(peak_path, sep="\t", header=None, index_col=None)
     peaks.columns = ["chrm", "start", "end", "stand"]

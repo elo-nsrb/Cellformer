@@ -5,8 +5,8 @@ import argparse
 import episcanpy as es
 import subprocess
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', default="./data/",
-                    help='Location to save pseudobulks data')
+parser.add_argument('--path_data', default="./data/",
+                    help='Location with pseudobulks data')
 
 parser.add_argument('--name', default="pseudobulks",
                     help='Name pseudobulks data')
@@ -79,8 +79,9 @@ def annotatePeak(adata):
 
 def main():
     args = parser.parse_args()
-    path = args.path
-    annot_pa = os.path.join(path, args.name + "_annotations.csv")
+    path = args.path_data
+    annot_pa = os.path.join(path, "cell_count_norm_"
+                        + args.name + "_annotations.csv")
     annot = pd.read_csv(annot_pa)
     annot_chipseeker = pd.read_csv(os.path.join(path, "annot_chipseeker.tsv"),header=0, sep="\t")
     annot = parseAndMergeChipannot(annot_chipseeker, annot)

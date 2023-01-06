@@ -6,6 +6,7 @@ The lastest source version of Cellformer can be accessed by running the followin
 
 ```
 git clone https://github.com/elo-nsrb/Cellformer.git
+cd Cellformer
 ```
 
 ## Requirements
@@ -15,6 +16,9 @@ git clone https://github.com/elo-nsrb/Cellformer.git
 * ArchR (R version 4.2.2)
 * Scikit-learn
 
+In order to install package dependencies, you will need [Anaconda](https://anaconda.org/). After installing Anaconda, please run the following command to create conda environnements with R and Pytorch dependencies:
+
+`.\setup.sh`
 
 ## Usage
 ### 1. Peak calling and peak matrix creation

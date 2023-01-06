@@ -9,7 +9,7 @@ txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 parser <- ArgumentParser()
 parser$add_argument( "--path_data",
                         default="./data/",
-                           help="Directory contining arrow files")
+                           help="Directory with peaks_with_header.tsv")
 args <- parser$parse_args()
 mypath = args$path_data
 peakfile = paste0(mypath,"peaks_with_header.tsv")
