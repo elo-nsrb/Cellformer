@@ -290,6 +290,10 @@ def main():
     df_metrics_sep = pd.read_csv(model_path + "aggregated_sc_mixturemask_metrics_cv_mean_it.csv")
     df_metrics_sep["method"] = "sep"
     list_df_per_it.append(df_metrics_sep)
+    if args.dataset == "Brain":
+        df_metrics = pd.read_csv("/home/eloiseb/stanford_drive/data/ATAC-seq_sc_detailed/bayesprism_metrics_per_it.csv")
+        df_metrics["method"] = "BayesPrism"
+        list_df_per_it.append(df_metrics)
     savename = model_path + "comp_ML_full_train_100_with_it"
 
     if not os.path.exists(savename + ".csv"): 
@@ -310,18 +314,6 @@ def main():
         pred_, m_time = nmf_decomposition(
                                 inp_test.drop("Sample_num", axis=1), 
                                 gt_test)
-        df_metrics_pr = compute_metrics_per_subject(pred_, 
-                                        gt_test, celltypes,
-                                        sample_list) 
-        df_metrics_pr["method"] = "NMF_pseudobulk"
-        df_metrics_pr["time"] = m_time
-        list_df.append(df_metrics_pr)
-        df_metrics_pr = compute_metrics(pred_, 
-                                        gt_test, celltypes)
-        df_metrics_pr["method"] = "NMF_pseudobulk"
-        df_metrics_pr["time"] = m_time
-        list_df_per_it.append(df_metrics_pr)
-        print("NMF mean time : " + str(m_time))
 
         pred_, m_time = nmf_decomposition(
                                 inp_test.drop("Sample_num", axis=1), 
@@ -357,17 +349,6 @@ def main():
                                             gt_test,
                                             group_test,
                                             pr)
-                df_metrics_pr = compute_metrics_per_subject(pred_,
-                        gt_test, celltypes, sample_list) 
-                df_metrics_pr["method"] = pr + "_same_train"
-                df_metrics_pr["time"] = mean_time
-                list_df.append(df_metrics_pr)
-                df_metrics_pr = compute_metrics(pred_,
-                        gt_test, celltypes) 
-                df_metrics_pr["method"] = pr + "_same_train"
-                df_metrics_pr["time"] = mean_time
-                list_df_per_it.append(df_metrics_pr)
-                #df_metric_pr.to_csv("metrics_%s.csv"%pr, index=None)
                 df_metrics_pr = compute_metrics_per_subject(pred_*mask_test,
                         gt_test*mask_test, celltypes, sample_list) 
                 df_metrics_pr["method"] = pr + "_same_train_masked"
@@ -399,22 +380,11 @@ def main():
         #df_metrics_tot.loc[(df_metrics_tot.method == "NMF") , "R2"] = 0
         list_df.append(df_metrics_tot)
         list_df_per_it.append(df_metrics_tot_per_it)
-    #path_ = "/home/eloiseb/experiments/deconv_peak/L49_CV_Conv/"
-    #df_metrics_conv = pd.read_csv(path_ + "aggregated_sc_mixture_meanmask_metrics_cv.csv")
-    #df_metrics_conv["method"] = "ConvTasNet"
-    #list_df.append(df_metrics_conv)
-    #path_ = "/home/eloiseb/experiments/deconv_peak/L49_CV_NLFC/"
-    #df_metrics_conv = pd.read_csv(path_ + "aggregated_sc_mixture_meanmask_metrics_cv.csv")
-    #df_metrics_conv["method"] = "Nonlinear_FC"
-    #list_df.append(df_metrics_conv)
-    #path_ = "/home/eloiseb/experiments/deconv_peak/L49_CV_FC/"
-    #df_metrics_conv = pd.read_csv(path_ + "aggregated_sc_mixture_meanmask_metrics_cv.csv")
-    #df_metrics_conv["method"] = "Linear_FC"
-    #list_df.append(df_metrics_conv)
         
     df_metrics_tot = pd.concat(list_df, axis=0)
     df_metrics_tot_per_it = pd.concat(list_df_per_it, axis=0)
     mapping = {"sep":"Cellformer",
+            "BayesPrism":"BayesPrism",
                 "NMF_pseudo_bulk_mask":"NMF",
                 "LinearRegression_same_train_masked":"Linear regression",
                 "knn_same_train_masked":"KNN"}
@@ -429,9 +399,9 @@ def main():
             (("Cellformer", "Cellformer"), ("Linear regression", "Linear regression")),
             (("Cellformer", "Cellformer"), ("KNN","KNN"))]
     palette = {"Cellformer":"#004d4b",
-                "KNN":"#724600",
+                "KNN":"#9d6100",
                 "Linear regression":"#df9114",
-                "NMF":"#ffebcf"}
+                "NMF":"#fccb7b"}
 
     hue_order=["Cellformer", "NMF", "Linear regression", "KNN"]
     #hue_order=["Cellformer", "NMF", "KNN"]
@@ -454,15 +424,6 @@ def main():
                     "markeredgecolor":"black",
                     "markersize":"5"},
                 linewidth=0.8)#, notch=True)
-        #sns.swarmplot(data=tmp, y="res",
-        #        hue="method",
-        #        ax=ax,
-        #        size=3,
-        #        hue_order=hue_order,
-        #        order=hue_order,
-        #        zorder=0,
-        #        x="method", palette=["black"], #"Accent_r",
-        #        linewidth=0.1)
         annotator = Annotator(ax, pairs, data=tmp,
                             y="res",
                             x="method",
@@ -537,15 +498,22 @@ def main():
     axes = axes.flatten()
     print(com)
     pairs = [
-            (("Cellformer", "Cellformer"),("NMF","NMF")),
-            (("Cellformer", "Cellformer"), ("Linear regression", "Linear regression")),
-            (("Cellformer", "Cellformer"), ("KNN","KNN"))]
+            #(("Cellformer", "Cellformer"),("NMF","NMF")),
+            #(("Cellformer", "Cellformer"), ("Linear regression", "Linear regression")),
+            #(("Cellformer", "Cellformer"), ("KNN","KNN")),
+            (("Cellformer", "Cellformer"), ("BayesPrism","BayesPrism"))
+            ]
     palette = {"Cellformer":"#004d4b",
-                "KNN":"#724600",
+            "BayesPrism":"#452b00",
+                "KNN":"#9d6100",
                 "Linear regression":"#df9114",
-                "NMF":"#ffebcf"}
+                "NMF":"#fccb7b"}
 
-    hue_order=["Cellformer", "NMF", "Linear regression", "KNN"]
+    hue_order=["Cellformer", "NMF", "Linear regression", "KNN", "BayesPrism"]
+    hue_order=["Cellformer", "NMF", "Linear regression", "KNN"]# "BayesPrism"]
+    hue_order=["Cellformer", #"NMF", "Linear regression", "KNN",
+            "BayesPrism"]
+    df_metrics_tot_per_it = df_metrics_tot_per_it[df_metrics_tot_per_it.method.isin(hue_order)]
     sns.set(font_scale=2, style="white")
     fontsize=18
     for indx, it in enumerate(["spearman", "auc", "auprc"]):
@@ -591,7 +559,7 @@ def main():
         ax.set_xlabel("")
         ax.set_title(it)
         ax.set_ylabel("")
-    plt.savefig(os.path.join(model_path, "box_comp_CV_MEAN_IT.svg"),
+    plt.savefig(os.path.join(model_path, "box_comp_CV_MEAN_IT_comp_baye_prism.svg"),
                 bbox_inches="tight")
     plt.close("all")
     
@@ -642,40 +610,6 @@ def main():
                 bbox_inches="tight")
     plt.close("all")
     
-    #g = sns.FacetGrid(data=df_metrics_tot[df_metrics_tot.metrics!="R2"], 
-    #        col="metrics", #figsize=(15,15),
-    #        col_wrap=2, sharey=False)
-    #g.map_dataframe(sns.scatterplot, x="celltype", y="res",
-    #        hue="method")
-    #g.add_legend()
-    #g.set_xticklabels( rotation=90)
-    #plt.savefig(path_sep + "comp_CV_other_full_100_test.png")
-    #plt.close("all")
-
-    #
-    #palette=["#4C061D","#D17A22", "#B4C292","#736F4E"] 
-    #palette= ["#75485e", "#cb904d", "#dfcc74", "#c3e991"]#51a3a3, 
-    #g = sns.FacetGrid(data=df_metrics_tot[~df_metrics_tot.metrics.isin(["rmse","R2"])], 
-    #        col="metrics",
-    #        aspect=1,
-    #        height=5,
-    #        col_wrap=3, sharey=False)
-    #g.map_dataframe(sns.boxplot,
-    #        y="res",
-    #        hue="method",
-    #        x="method", palette=palette,linewidth=0.8)#, notch=True)
-    #g.map_dataframe(sns.swarmplot,
-    #        y="res",
-    #        hue="method",
-    #        size=3,
-    #        zorder=0,
-    #        x="method", palette=["black"], #"Accent_r",
-    #        linewidth=0.1)
-    #g.add_legend()
-    #g.set_xticklabels( rotation=70)
-    #plt.savefig(path_sep + "box_comp_CV_other_full_100_test.svg",
-    #            bbox_inches="tight")
-    #plt.close("all")
 
 if __name__ == "__main__":
     main()
