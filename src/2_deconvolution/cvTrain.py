@@ -26,6 +26,7 @@ parser.add_argument('--parent_dir', default='final.pth.tar',
                     help='Location to save best validation model')
 parser.add_argument("--model", default="SepFormerTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
 parser.add_argument("--gpu", default="2")
+parser.add_argument("--dataset", default="Brain")
 parser.add_argument("--resume_ckpt", default="last.ckpt", help="Checkpoint path to load for resume-training")
 parser.add_argument("--resume", action="store_true", help="Resume-training")
 
@@ -34,16 +35,28 @@ parser.add_argument("--resume", action="store_true", help="Resume-training")
 def main(args):
     seed_everything(42, workers=True)
     parent_dir = args.parent_dir
-    list_ids = ["13_0038","13_0419", 
-                "11_0393", "09_1589", "14_0586",
-                "14_1018",
-                "09_35",
-                "04_38",
-                "06_0615", 
-             "03_39",
-                "11_0311",
-                "13_1226"
-                ]
+    if args.dataset == "Brain":
+        list_ids = ["13_0038","13_0419", 
+                    "11_0393", "09_1589", "14_0586",
+                    "14_1018",
+                    "09_35",
+                    "04_38",
+                    "06_0615", 
+                 "03_39",
+                    "11_0311",
+                    "13_1226"
+                    ]
+    elif args.dataset == "PBMC":
+        list_ids = ["10k_pbmc", "pbmc_10k_nextgem",
+                    "pbmc_10k_v1", "SUHealthy_PBMC_B1T2",
+                    "pbmc_5k_nextgem", "SUHealthy_PBMC1_B1T1",
+                    "frozen_sorted_pbmc_5k", "frozen_unsorted_pbmc_5k",
+                    "pbmc_5k_v1", "scATAC_PBMC_D10T1","scATAC_PBMC_D12T1",
+                    "scATAC_PBMC_D12T2", "scATAC_PBMC_D12T3",
+                    "scATAC_PBMC_D11T1", "pbmc_1k_nextgem",
+                    "pbmc_1k_v1", "pbmc_500_nextgem", "pbmc_500_v1"]
+    else:
+            print("dataset not found %s"%args.dataset)
     for s_id in list_ids:
                 opt = parse(parent_dir + "train.yml", is_tain=True)
                 opt["datasets"]["sample_id_test"] = s_id

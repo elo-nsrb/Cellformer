@@ -17,7 +17,7 @@ from asteroid.data.wsj0_mix import Wsj0mixDataset
 from asteroid.losses import PITLossWrapper, pairwise_neg_sisdr
 from asteroid.models import save_publishable
 from asteroid.utils import tensors_to_device
-from comparison_model import *
+from comparison_with_unsupervised import *
 
 from asteroid.models import DPRNNTasNet
 from data import *
@@ -40,7 +40,7 @@ from network import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='final.pth.tar',
                     help='Location to save best validation model')
-parser.add_argument("--model", default="ConvTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
+parser.add_argument("--model", default="SepFormerTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
 parser.add_argument("--gpu", default="2")
 parser.add_argument("--use_gpu", type=int, default=0, help="Whether to use the GPU for model execution")
 parser.add_argument("--out_dir", type=str, default="results/best_model", help="Directory in exp_dir where the eval results will be stored")
@@ -64,6 +64,7 @@ parser.add_argument('--mask', action='store_true',
                         help='binarize output')
 parser.add_argument('--pure', action='store_true',
                         help='Test on pure')
+parser.add_argument("--dataset", default="Brain")
 parser.add_argument('--save', action='store_true',
                         help='Test on pure')
 
@@ -72,11 +73,28 @@ parser.add_argument('--save', action='store_true',
 
 def main(args):
     parent_dir = args.parent_dir
-    list_ids = ["13_1226","13_0038","13_0419", 
-                "11_0393", "09_1589", "14_0586",
-                "14_1018", "06_0615", "09_35", "03_39",
-                "04_38", "11_0311"]
-    #list_val_ids = ["13_0038", "13_1226"]
+    if args.dataset == "Brain":
+        list_ids = ["13_0038","13_0419", 
+                    "11_0393", "09_1589", "14_0586",
+                    "14_1018",
+                    "09_35",
+                    "04_38",
+                    "06_0615", 
+                 "03_39",
+                    "11_0311",
+                    "13_1226"
+                    ]
+    elif args.dataset == "PBMC":
+        list_ids = ["10k_pbmc", "pbmc_10k_nextgem",
+                    "pbmc_10k_v1", "SUHealthy_PBMC_B1T2",
+                    "pbmc_5k_nextgem", "SUHealthy_PBMC1_B1T1",
+                    "frozen_sorted_pbmc_5k", "frozen_unsorted_pbmc_5k",
+                    "pbmc_5k_v1", "scATAC_PBMC_D10T1","scATAC_PBMC_D12T1",
+                    "scATAC_PBMC_D12T2", "scATAC_PBMC_D12T3",
+                    "scATAC_PBMC_D11T1", "pbmc_1k_nextgem",
+                    "pbmc_1k_v1", "pbmc_500_nextgem", "pbmc_500_v1"]
+    else:
+            print("dataset not found %s"%args.dataset)
     res_cv_raw = None
     res_cv_mask = None
     df_metrics_raw_list = []
@@ -291,14 +309,24 @@ def main(args):
     df_metrics_tot_mask.to_csv(os.path.join(parent_dir,name + "ALL_runs_mask_metrics_cv.csv"))
     df_metrics_tot_raw = pd.concat(df_metrics_raw_list,axis=0)
     df_metrics_tot_raw.to_csv(os.path.join(parent_dir,name + "ALL_runs_raw_metrics_cv.csv"))
-    df_metrics_mask= compute_metrics(res_cv_mask, 
+    df_metrics_mask= compute_metrics_per_subject(res_cv_mask, 
                             gt_m, 
-                            celltypes) 
-    df_metrics_= compute_metrics(res_cv_raw, 
+                            celltypes,
+                            list_ids) 
+    df_metrics_= compute_metrics_per_subject(res_cv_raw, 
                             separate, 
-                            celltypes) 
+                            celltypes,
+                            list_ids) 
     df_metrics_.to_csv(os.path.join(parent_dir,name + "metrics_cv.csv"))
     df_metrics_mask.to_csv(os.path.join(parent_dir,name + "mask_metrics_cv.csv"))
+    df_metrics_mask= compute_metrics(res_cv_mask, 
+                            gt_m, 
+                            celltypes)
+    df_metrics_= compute_metrics(res_cv_raw, 
+                            separate, 
+                            celltypes)
+    df_metrics_.to_csv(os.path.join(parent_dir,name + "metrics_cv_mean_it.csv"))
+    df_metrics_mask.to_csv(os.path.join(parent_dir,name + "mask_metrics_cv_mean_it.csv"))
     np.save(os.path.join(parent_dir,name+"gt_.npy"), gt_m)
     np.save(os.path.join(parent_dir,name+"pred_.npy"), res_cv_mask)
 

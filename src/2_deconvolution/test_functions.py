@@ -99,7 +99,8 @@ def plot_aurc_from_sig(input_signals, pred_signals, celltypes, savedir,
             fscoreOpt = round(fscore[ix], ndigits = 4)
             recallOpt = round(recall[ix], ndigits = 4)
             precisionOpt = round(precision[ix], ndigits = 4)
-            #print('Recall: {}, Precision: {}'.format(recallOpt, precisionOpt)) no_skill = len(y_true[y_true==1]) / len(y_true)
+            #print('Recall: {}, Precision: {}'.format(recallOpt, precisionOpt)) 
+            no_skill = len(y_true[y_true==1]) / len(y_true)
             #print("no skills : " +str(no_skill))
             # plot the no skill precision-recall curve
             axes[idx].plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
