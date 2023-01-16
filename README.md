@@ -23,11 +23,15 @@ In order to install package dependencies, you will need [Anaconda](https://anaco
 ## Usage
 ### 1. Peak calling and peak matrix creation
 
-To create a peak matrix from single-cell ATAC-seq fragment files, please use the following command:
+To create a peak matrix from single-cell ATAC-seq fragment files, please use the following commands:
 
 ```
+conda activate R_env
 ./createPeakMatrix.sh --path_data ./data/ --input_dir ./scDATA/ --metadata ./data/scATAC_cell_annotations.csv
+```
 
+
+```
 usage: createDataset -p | --path_data PATH_DATA
                      -i | --input_dir INPUT_DIR
                      -m | --metadata METADATA
@@ -42,11 +46,13 @@ optional arguments:
 ```
 
 ### 2. Synthetic dataset generation
-Synthetic dataset can be created from snATAC-seq peak matrix in [AnnData format](https://anndata.readthedocs.io/en/latest/) (see example in [data](https://github.com/elo-nsrb/Cellformer/tree/main/data)):
+Synthetic dataset can be created from snATAC-seq peak matrix in [AnnData format](https://anndata.readthedocs.io/en/latest/) with `celltype` and `Sample_num` columns in `obs`(see example in [data](https://github.com/elo-nsrb/Cellformer/tree/main/data)):
 
 ```
 ./createDataset.sh -p ../data/ -n 500
+```
 
+```
 usage: createDataset -p | --path_data PATH_DATA
                      -n | --nbSamplesPerCase NBSAMPLESPERCASE
                      [ -f | --matrixfilename MATRIXFILEMANE]
@@ -64,8 +70,11 @@ optional arguments:
 We provided the pretrained model used in the manuscript in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer). The pretrained model can be used to deconvolute bulk peak matrix by running:
 
 ```
+conda activate pytorch_env
 ./deconvolution --model_path cellformer/ --peak_matrix ./data/CTRL_CAUD_AD.peak_countMatrix.txt
+```
 
+```
 Usage: deconvolution  -p | --model_path MODEL_PATH
                       -m | --peak_matrix PEAK_MATRIX
                       [ -h | --help  ]"
@@ -82,8 +91,11 @@ You can find an example of the expected peak matrix format `CTRL_CAUD_AD.peak_co
 
 Cellformer can be trained from scratch using a synthetic dataset and configuration file `train.yml` (see an example in [cellformer](https://github.com/elo-nsrb/Cellformer/tree/main/cellformer)) by running:
 ```
+conda activate pytorch_env
 ./trainModel.sh --model_path cellformer/
+```
 
+```
 usage: trainModel -p | --model_path MODEL_PATH
                   [ -h | --help]
 positional arguments:
@@ -99,11 +111,13 @@ Validation of the model can done using pseudobulk data by running:
 
 ```
 ./validationModel.sh --model_path cellformer/ --peak_matrix ./data/validation_data/aggregated_sc_mixture.csv --groundtruth ./data/validation_data/agg_sc_separate.npz
+```
 
+```
 Usage: validationModel  -p | --model_path MODEL_PATH
                         -m | --peak_matrix PEAK_MATRIX
                         -g | --groundtruth GROUNDTRUTH
-                        [ -h | --help  ]"
+                        [ -h | --help  ]
 positional arguments:
 -p, --model_path        Path to model directory with train.yml
 -m, --peak_matrix       Peak matrix to deconvolute
