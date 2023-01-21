@@ -99,16 +99,9 @@ def main(args):
                     model = getattr(asteroid.models, args.model)(**opt["filterbank"], **opt["masknet"])
 
                 learnable_params = list(model.parameters())
-                # PITLossWrapper works with any loss function.
                 if opt["training"]["loss"] == "neg_sisdr":
                     loss_func = pairwise_neg_sisdr 
                     loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-                elif opt["training"]["loss"] == "single_neg_sisdr":
-                    loss_func = singlesrc_neg_sisdr
-                    loss = PITLossWrapper(loss_func, pit_from="pw_pt")
-                elif opt["training"]["loss"] == "mse":
-                    loss_func = singlesrc_mse
-                    loss = PITLossWrapper(loss_func, pit_from="pw_pt")
                 elif opt["training"]["loss"] == "mse_no_pit":
                     #loss = nn.MSELoss()
                     if opt["training"]["weights"] is not None:
@@ -124,12 +117,6 @@ def main(args):
                 elif opt["training"]["loss"] == "bce":
                     loss_func = singlesrc_bcewithlogit
                     loss = PITLossWrapper(loss_func, pit_from="pw_pt")
-                elif opt["training"]["loss"] == "pair_mse":
-                    loss_func = pairwise_mse
-                    loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-                elif opt["training"]["loss"] == "pair_bce":
-                    loss_func = pairwise_bce
-                    loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
                 elif opt["training"]["loss"] == "combined":
                     loss_func = combinedpairwiseloss
                     loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
@@ -154,16 +141,14 @@ def main(args):
                                  ),
                                      "interval": "batch",
                                     }
-                else: #lif opt["training"]["reduce_on_plateau"]:
-                        scheduler = ReduceLROnPlateau(optimizer=optimizer,
-                                                      factor=0.8,
-                                                      patience=opt["training"]["patience"]
-                                                      )
-
-                system = System(model, optimizer, loss, train_loader, val_loader,
+                else: 
+                    scheduler = ReduceLROnPlateau(optimizer=optimizer,
+                                      factor=0.8,
+                                      patience=opt["training"]["patience"]
+                                      )
+                system = System(model, optimizer, loss,
+                        train_loader, val_loader,
                         scheduler=scheduler)
-
-
                 # Define callbacks
                 callbacks = []
                 checkpoint_dir = os.path.join(args.model_path, "checkpoints/")

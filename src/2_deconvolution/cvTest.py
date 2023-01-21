@@ -27,7 +27,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from scipy.stats import pearsonr
 import seaborn as sns
 import pandas as pd
-from test_functions import *
+#from test_functions import *
 from analysis import *
 from utils import get_logger, parse #device, 
 from src_ssl.models import *
@@ -152,20 +152,8 @@ def main(args):
         if opt["training"]["loss"] == "neg_sisdr":
             loss_func = pairwise_neg_sisdr 
             loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-        elif opt["training"]["loss"] == "single_neg_sisdr":
-            loss_func = singlesrc_neg_sisdr
-            loss = PITLossWrapper(loss_func, pit_from="pw_pt")
-        elif opt["training"]["loss"] == "mse":
-            loss_func = singlesrc_mse
-            loss = PITLossWrapper(loss_func, pit_from="pw_pt")
         elif opt["training"]["loss"] == "mse_no_pit":
             loss = nn.MSELoss()
-        elif opt["training"]["loss"] == "bce":
-            loss_func = singlesrc_bcewithlogit
-            loss = PITLossWrapper(loss_func, pit_from="pw_pt")
-        elif opt["training"]["loss"] == "pair_mse":
-            loss_func = pairwise_mse
-            loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
         elif opt["training"]["loss"] == "pair_bce":
             loss_func = pairwise_bce
             loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
@@ -199,8 +187,6 @@ def main(args):
             all_states = torch.load(args.ckpt_path, map_location="cpu")
             state_dict = {k.split('.', 1)[1]: all_states["state_dict"][k] for k in all_states["state_dict"]}
             model.load_state_dict(state_dict)
-                # model.load_state_dict(all_states["state_dict"], strict=False)
-
             # Handle device placement
         if args.use_gpu:
             model.cuda()

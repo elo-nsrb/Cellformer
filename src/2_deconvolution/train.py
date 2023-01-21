@@ -47,12 +47,12 @@ def main(args):
 
     logger.info('Building the model of %s'%args.model)
     train_loader = make_dataloader("train", 
-                                    is_train=True,
-                                    data_kwargs=opt['datasets'],
-                                    num_workers=opt['datasets']
-                                   ['num_workers'],
-                                   batch_size=opt["training"]["batch_size"],
-                                   ratio=opt['datasets']["ratio"])#.data_loader
+                                is_train=True,
+                                data_kwargs=opt['datasets'],
+                                num_workers=opt['datasets']
+                               ['num_workers'],
+                               batch_size=opt["training"]["batch_size"],
+                               ratio=opt['datasets']["ratio"])
     val_loader = make_dataloader("val",
                                 is_train=True,
                                 data_kwargs=opt['datasets'], 
@@ -63,7 +63,6 @@ def main(args):
 
     n_src = len(opt["datasets"]["celltype_to_use"])
 
-    # Tell DPRNN that we want to separate to 2 sources.
     if args.model == "FC_MOR":
         model = MultiOutputRegression(**opt["net"])
         print(model)
@@ -75,16 +74,9 @@ def main(args):
     print(model)
 
     learnable_params = list(model.parameters())
-    # PITLossWrapper works with any loss function.
     if opt["training"]["loss"] == "neg_sisdr":
         loss_func = pairwise_neg_sisdr 
         loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-    elif opt["training"]["loss"] == "single_neg_sisdr":
-        loss_func = singlesrc_neg_sisdr
-        loss = PITLossWrapper(loss_func, pit_from="pw_pt")
-    #elif opt["training"]["loss"] == "mse":
-    #    loss_func = singlesrc_mse
-    #    loss = PITLossWrapper(loss_func, pit_from="pw_pt")
     elif opt["training"]["loss"] == "mse_no_pit":
         #loss = nn.MSELoss()
         if opt["training"]["weights"] is not None:
@@ -100,7 +92,6 @@ def main(args):
         loss = MixteMSE()
     elif opt["training"]["loss"] == "mea":
         loss = nn.L1Loss()
-
     elif opt["training"]["loss"] == "bce":
         loss = nn.BCEWithLogitsLoss() #singlesrc_bcewithlogit
         #loss = PITLossWrapper(loss_func, pit_from="pw_pt")
@@ -140,11 +131,11 @@ def main(args):
                      ),
                          "interval": "batch",
                         }
-    else: #lif opt["training"]["reduce_on_plateau"]:
+    else: 
             scheduler = ReduceLROnPlateau(optimizer=optimizer,
-                                          factor=0.8,
-                                          patience=opt["training"]["patience"]
-                                          )
+                                      factor=0.8,
+                                      patience=opt["training"]["patience"]
+                                      )
 
     system = System(model, 
             optimizer, 
@@ -198,10 +189,6 @@ def main(args):
         comet_logger.log_hyperparams(opt)
         loggers.append(comet_logger)
 
-
-
-    # Train for 1 epoch using a single GPU. If you're running this on Google Colab,
-    # be sure to select a GPU runtime (Runtime → Change runtime type → Hardware accelarator).
     if args.resume:
         resume_from = os.path.join(checkpoint_dir, args.resume_ckpt)
     else:
@@ -227,7 +214,7 @@ def main(args):
     system.cpu()
 
     train_set_infos = dict()
-    train_set_infos["dataset"] = "corces"
+    train_set_infos["dataset"] = "Brain"
 
     to_save = system.model.serialize()
     to_save.update(train_set_infos)
