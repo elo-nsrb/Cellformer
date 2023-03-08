@@ -195,18 +195,20 @@ def main(args):
         binary = False
         perfs = []
         torch.no_grad().__enter__()
-        mix = torch.from_numpy(mixtures_tt.iloc[:,
+        mix = mixtures_tt.iloc[:,
                                          :-1].values.astype(
-                                             np.float32))
+                                             np.float32)        
         if opt['datasets']["normalizeMax"]:
-            mix = mix/mix.max()
+            max_val= np.max(mix,1)
+            mix = mix/max_val[:, np.newaxis]
+        mix = torch.from_numpy(mix)
         mix = tensors_to_device(mix, device=model_device)
 
         sources_res = model(mix)
         sources_res = torch.clamp(sources_res, min=0)
         if opt['datasets']["normalizeMax"]:
-            sources_res = sources_res*mix.max()
-            mix = mix*mix.max()
+            sources_res = sources_res*max_val[:, np.newaxis,np.newaxis]
+            mix = mix*max_val[:, np.newaxis,np.newaxis]
         sources_res_np = sources_res.detach().cpu().numpy()
         if args.mask:
             sources_res_np = sources_res_np*mask
