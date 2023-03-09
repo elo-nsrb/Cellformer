@@ -56,7 +56,7 @@ def prepareData(path, annot_pa, model_path, disease):
     adata.obs["replicate"] = df_pred_bulk.replicate.values
     adata.obs["brain_region"] = df_pred_bulk.brain_region.values
     adata.obs["condition"] = df_pred_bulk.Type.values
-    adata.obs["gender"] = df_pred_bulk.Gender.values
+    adata.obs["sex"] = df_pred_bulk.Gender.values
     adata.obs["batch"] = df_pred_bulk.Batch.values
     adata.obs["expired_age"] = df_pred_bulk['xxx.expired_age'].values
     adata.obs["xxx.CognitiveStatus"] = df_pred_bulk['xxx.CognitiveStatus'].values
