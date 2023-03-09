@@ -126,3 +126,6 @@ positional arguments:
 optional arguments:
 -h, --help              Show help message and exit
 ```
+
+## Licence
+This project is covered under the [GNU General Public License v3.0](https://github.com/elo-nsrb/Cellformer/blob/main/LICENSE)
