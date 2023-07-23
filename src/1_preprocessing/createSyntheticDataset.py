@@ -6,16 +6,16 @@ import multiprocessing
 from joblib import Parallel, delayed
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', 
+parser.add_argument('--path',
                         default="./data/",
                     help='Location to save pseudobulks data')
-parser.add_argument('--filename', 
+parser.add_argument('--filename',
                         default="adata_peak_matrix.h5",
                     help='Name of the anndata file')
-parser.add_argument('--nb_cells_per_case', 
+parser.add_argument('--nb_cells_per_case',
                 help="Number of synthetic samples created per individual",
                 default=500, type=int)
-parser.add_argument('--nb_cores', 
+parser.add_argument('--nb_cores',
                 help="Number of cores",
                 default=5, type=int)
 parser.add_argument('--name', default="pseudobulks",
@@ -56,17 +56,17 @@ def sampleDataset(data, labels, nb_to_samples,
             if i ==0:
                 separate_sample = artificial_sample[np.newaxis,:,:]
             else:
-                separate_sample = np.concatenate([separate_sample, 
+                separate_sample = np.concatenate([separate_sample,
                                         artificial_sample[np.newaxis,:,:]],
-                                        axis=0) 
-                
+                                        axis=0)
+
             sim_x.append(df_mix)
             sim_y.append(lab)
             sample_size_list.append(sample_size)
 
     # Create sparse samples
     if with_sparse or only_sparse:
-        for i in range(2000): #nb_to_samples):
+        for i in range(nb_to_samples):
             if random_num_cell:
                 sample_size = np.random.randint(100, 800)
             artificial_sample, df_mix, lab = createBulkSample(data,
@@ -77,8 +77,8 @@ def sampleDataset(data, labels, nb_to_samples,
             if i ==0 and only_sparse:
                 separate_sample = artificial_sample[np.newaxis,:,:]
             else:
-                separate_sample = np.concatenate([separate_sample, 
-                    artificial_sample[np.newaxis,:,:]], axis=0) 
+                separate_sample = np.concatenate([separate_sample,
+                    artificial_sample[np.newaxis,:,:]], axis=0)
             sim_x.append(df_mix)
             sim_y.append(lab)
             sample_size_list.append(sample_size)
@@ -134,7 +134,7 @@ def createBulkSample(data, label,sample_size, celltypes, sparse=False,
     for i in range(nb_available_cts):
         ct = available_celltypes[i]
         cells_sub = data[np.array(label== ct), :]
-        cells_fraction = np.random.randint(0, cells_sub.shape[0], 
+        cells_fraction = np.random.randint(0, cells_sub.shape[0],
                                              samp_fracs[i])
         cells_sub = cells_sub[cells_fraction, :]
         artificial_samples[i] = cells_sub.sum(axis=0)#pure mix
@@ -147,7 +147,7 @@ def createBulkSample(data, label,sample_size, celltypes, sparse=False,
 
 
 def loopPerSample(it,i, dataset, subjects, nb_genes, dir_path,
-                        celltypes, 
+                        celltypes,
                         nb_sample_per_subject=10000,sample_size=500,
                         with_sparse=True, only_sparse=False, savename="",
                         pure=False):
@@ -157,10 +157,10 @@ def loopPerSample(it,i, dataset, subjects, nb_genes, dir_path,
         data = dataset[dataset.obs["Sample_num"]==it]
         print("subject num %d / %d"%(i, len(subjects)))
         lab = data.obs["celltype"]
-        (df_mix, df_labels, 
+        (df_mix, df_labels,
          separate_signals,
          sample_size_list) = sampleDataset(data.X,
-                                    lab, nb_sample_per_subject, 
+                                    lab, nb_sample_per_subject,
                                     sample_size,
                                     celltypes,
                                     with_sparse=with_sparse,
@@ -175,11 +175,11 @@ def loopPerSample(it,i, dataset, subjects, nb_genes, dir_path,
                 savename += "_only_sparse_"
         if not with_sparse:
                 savename += "__pure_"
-        df_mix.to_csv(dir_path 
+        df_mix.to_csv(dir_path
                         + savename
                         + "_pseudobulk_data_subject_%s.csv"%it,
                         index=False)
-        df_labels.to_csv(dir_path 
+        df_labels.to_csv(dir_path
                         + savename
                         + "_labels_data_subject_%s.csv"%it,
                         index=False)
@@ -187,7 +187,7 @@ def loopPerSample(it,i, dataset, subjects, nb_genes, dir_path,
                             + savename
                             + "_celltype_specific_subject_%s.npz"%it,
                             mat=separate_signals)
-        np.save(dir_path + savename + "_nb_cells_per_mixtures_%s.npy"%it, 
+        np.save(dir_path + savename + "_nb_cells_per_mixtures_%s.npy"%it,
                 np.asarray(sample_size_list))
 
 
@@ -203,7 +203,7 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
 
     subjects = dataset.obs["Sample_num"].unique()
     if save_per_samples:
-        Parallel(n_jobs=num_cores)(delayed(loopPerSample)(it, i, 
+        Parallel(n_jobs=num_cores)(delayed(loopPerSample)(it, i,
                         dataset, subjects, nb_genes, dir_path,
                         celltypes,
                         nb_sample_per_subject=nb_sample_per_subject,
@@ -219,10 +219,10 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
             print("subject num %d / %d"%(i, len(subjects)))
             lab = data.obs["celltype"]
             if i==0:
-                (df_mix, df_labels, 
+                (df_mix, df_labels,
                  separate_signals,
                  sample_size_list) = sampleDataset(data.X,
-                                            lab, nb_sample_per_subject, 
+                                            lab, nb_sample_per_subject,
                                             sample_size,
                                             celltypes,
                                             with_sparse=with_sparse,
@@ -230,11 +230,11 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
                                             only_sparse=only_sparse)
                 df_mix["Sample_num"] = it
             else:
-                (df_tmp, 
-                 labels_tmp, 
+                (df_tmp,
+                 labels_tmp,
                  separate_signals_tmp,
                  sample_size_list_tmp) = sampleDataset(
-                                            data.X, lab, 
+                                            data.X, lab,
                                             nb_sample_per_subject,
                                             sample_size,
                                             celltypes,
@@ -244,7 +244,7 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
                 df_tmp["Sample_num"] = it
                 df_mix = pd.concat([df_mix, df_tmp], axis=0)
                 df_labels = pd.concat([df_labels, labels_tmp], axis=0)
-                separate_signals = np.concatenate([separate_signals, separate_signals_tmp], axis=0) 
+                separate_signals = np.concatenate([separate_signals, separate_signals_tmp], axis=0)
                 sample_size_list += sample_size_list_tmp
         print(separate_signals.shape)
         if only_sparse:
@@ -257,7 +257,7 @@ def createALLBulkDataset(dataset, nb_genes, dir_path,
         df_mix.to_csv(dir_path + savename + "_pseudobulk_data.csv", index=False)
         df_labels.to_csv(dir_path + savename + "_labels_pseudobulk_data.csv", index=False)
         np.savez_compressed(dir_path + savename + "_celltype_specific.npz", mat=separate_signals)
-        np.save(dir_path + savename + "_nb_cells_per_mixtures.npy", 
+        np.save(dir_path + savename + "_nb_cells_per_mixtures.npy",
                 np.asarray(sample_size_list))
         return df_mix, df_labels, separate_signals
 
@@ -284,13 +284,13 @@ def main():
                             celltypes,
                             save_per_samples=True,
                             nb_sample_per_subject=nb_cell_per_case,
-                            sample_size=None, 
-                            savename=name, 
+                            sample_size=None,
+                            savename=name,
                             with_sparse=True,
                             num_cores=nb_cores
                             )
     #df, df_lables, separate_signals = createALLBulkDataset(adata_,
-    #                        adata_.X.shape[1], dir_path, 
+    #                        adata_.X.shape[1], dir_path,
     #                        celltypes,save_per_samples=True,
     #                        nb_sample_per_subject=100,sample_size=None,
     #                        savename=name, only_sparse=True, pure=True)
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     main()
 
 
-    
+
 
 
 

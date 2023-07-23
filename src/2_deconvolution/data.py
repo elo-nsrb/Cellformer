@@ -309,12 +309,22 @@ def prepareData(partition,
         else:
 
             sample_id = mixture["Sample_num"].unique().tolist()
-            sample_id_test = [it for it in sample_id if (
-                                    str(sample_id_test) in it)]
-            sample_id_val = [it for it in sample_id if (
-                                    str(sample_id_val) in it)]
+            if not isinstance(sample_id_test, list):
+                sample_id_test = [it for it in sample_id if (
+                                        str(sample_id_test) in it)]
+                sample_id_val = [it for it in sample_id if (
+                                        str(sample_id_val) in it)]
+            else:
+                sample_id_test = list(set([it for it in sample_id if (
+                                        str(sp) in it for sp in sample_id_test)]))
+                sample_id_val = list(set([it for it in sample_id if (
+                                        str(sp) in it for sp in sample_id_val)]))
             #assert sample_id_test in sample_id
-            sample_id_train = [it for it in sample_id if it not in sample_id_test if not it in sample_id_val]
+            if sample_id_train is None:
+                sample_id_train = [it for it in sample_id if it not in sample_id_test if not it in sample_id_val]
+            else:
+                sample_id_train = list(set([it for it in sample_id if (
+                                        str(sp) in it for sp in sample_id_train)]))
         sample_test = sample_id_test
         sample_val = sample_id_val
         sample_train = sample_id_train

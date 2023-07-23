@@ -47,7 +47,7 @@ def main():
     ## Aggragate cell per sample &cell type
     df_sum = df_.groupby(["Sample_num", "celltype"]).sum()
     df_sum = df_sum.reset_index()
-    df_sum.to_csv(path + "aggregated_sc_per_celltype_non_corrected.csv", index=None)
+    df_sum.to_csv(path + "aggregated_sc_per_celltype.csv", index=None)
 
     ## Aggragate cell per sample
     df_mixture = df_.groupby(["Sample_num"]).sum()

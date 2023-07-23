@@ -12,11 +12,14 @@ cd Cellformer
 ## Requirements
 
 * Python 3
-* PyTorch (version 1.10.0)
+* PyTorch (1.10.0)
 * ArchR (R version 4.2.2)
 * Scikit-learn
+* Asteroid (0.5.2)
+* Pytorch-lightning (1.4.9)
+* commet_ml (3.22.0)
 
-In order to install package dependencies, you will need [Anaconda](https://anaconda.org/). After installing Anaconda, please run the following command to create conda environnements with R and Pytorch dependencies:
+In order to install package dependencies, you will need [Anaconda](https://anaconda.org/). After installing Anaconda, please run the following command to create two conda environnements with R and Pytorch dependencies:
 
 `.\setup.sh`
 

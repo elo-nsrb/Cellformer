@@ -158,7 +158,7 @@ def get_clf(clf_name, n_inputs=None, n_outputs=None):
 
 
 def compute_metrics(X_pred, X_gt, celltypes,
-                metrics=["spearman", "rmse", "R2", "auc", "auprc"]):
+                metrics=["spearman", "rmse", "R2", "auc", "auprc", "pearson"]):
     df_metrics = pd.DataFrame(columns=["celltype", "metrics", "res"])
     for met in metrics:
         for i,ct in enumerate(celltypes):
@@ -167,7 +167,7 @@ def compute_metrics(X_pred, X_gt, celltypes,
     return df_metrics
 
 def compute_metrics_per_subject(X_pred, X_gt, celltypes,list_sub,
-            metrics=["spearman", "rmse",  "auc", "auprc"]):
+            metrics=["spearman", "rmse",  "auc", "auprc", "pearson"]):
     df_metrics = pd.DataFrame(columns=["celltype", "metrics",
                                     "res", "individualID"])
     for met in metrics:
@@ -197,10 +197,11 @@ def get_metrics(X_gt, X_pred, metric):
         if len(X_gt.shape)>1:
             ress = []
             for it in range(X_gt.shape[0]):
-                res, _ = pearsonr(X_gt[it,:], X_pred[it,:], axis=None)
-                if not np.isnan(res):
-                    #res = 0
-                    ress.append(res)
+                if X_gt[it,:].sum() >0:
+                    res, _ = pearsonr(X_gt[it,:], X_pred[it,:])
+                    if not np.isnan(res):
+                        #res = 0
+                        ress.append(res)
             res= np.mean(ress)
         else:
             res, _ = pearsonr(X_gt, X_pred)
@@ -241,8 +242,9 @@ def get_metrics_per_subject(X_gt, X_pred, metric):
     elif metric=="pearson":
         ress = []
         for it in range(X_gt.shape[0]):
-            res, _ = pearsonr(X_gt[it,:], X_pred[it,:], axis=None)
-            ress.append(res)
+            if X_gt[it,:].sum() >0:
+                res, _ = pearsonr(X_gt[it,:], X_pred[it,:])
+                ress.append(res)
     elif metric=="R2":
         ress = []
         for it in range(X_gt.shape[0]):

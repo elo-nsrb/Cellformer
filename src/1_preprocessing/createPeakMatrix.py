@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-import os 
+import os
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -18,14 +18,14 @@ import statsmodels.stats.multitest as multi
 import sys
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', 
+parser.add_argument('--path',
                     default="./data/",
                     help='Location to save pseudobulks data')
 
-parser.add_argument('--savepath', 
+parser.add_argument('--savepath',
                     default="./data/",
                     help='Location to save pseudobulks data')
-parser.add_argument('--FC', default=1)
+parser.add_argument('--FC', default=2)
 parser.add_argument('--pvalue', default=0.001)
 
 
@@ -73,7 +73,7 @@ def read_adata(path):
 
 
 
-def filter_matrix(adata, path, 
+def filter_matrix(adata, path,
                   fdr_th = 0.05,
                     log2fc = 1):
     adata.X = csr_matrix(adata.X)
@@ -107,16 +107,17 @@ def filter_matrix(adata, path,
 
 def main():
     args = parser.parse_args()
-    path = args.path 
+    path = args.path
     adata = read_adata(path)
-    adata = filter_matrix(adata, path, 
+    adata = filter_matrix(adata, path,
                   fdr_th = args.pvalue,
                     log2fc = args.FC)
+    print(adata.obs.celltype.unique())
     savepath = args.savepath
     adata.write_h5ad(savepath + "adata_peak_matrix.h5")
     peaks_tsv = adata.var[["chrm", "start", "end"]]
     peaks_tsv["strand"] = "."
-    peaks_tsv.to_csv(savepath + "peaks" + ".tsv", 
+    peaks_tsv.to_csv(savepath + "peaks" + ".tsv",
                                    sep="\t",
                                    index=None,
                                   header=None)
