@@ -26,7 +26,6 @@ from sklearn.metrics import mean_squared_error, r2_score
 from scipy.stats import pearsonr
 import seaborn as sns
 import pandas as pd
-from test_functions import *
 #from analysis import *
 from utils import get_logger, parse #device, 
 from src_ssl.models import *
