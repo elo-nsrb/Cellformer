@@ -21,7 +21,7 @@ from losses import singlesrc_bcewithlogit, combinedpairwiseloss, combinedsinglel
 from sklearn.model_selection import LeaveOneGroupOut, GroupKFold, KFold
 from data import *
 import argparse
-from asteroid.engine import System
+from engine import System
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='final.pth.tar',
                     help='Location to save best validation model')
@@ -148,19 +148,19 @@ def main(args):
                 optimizer = optim.AdamW(learnable_params, lr=1e-3)
                 # Define scheduler
                 scheduler = None
-                #if args.model in ["DPTNet", "SepFormerTasNet", "SepFormer2TasNet"]:
-                #    steps_per_epoch = len(train_loader) // opt["training"]["accumulate_grad_batches"]
-                #    opt["scheduler"]["steps_per_epoch"] = steps_per_epoch
-                #    scheduler = {
-                #                "scheduler": DPTNetScheduler(
-                #                optimizer=optimizer,
-                #                steps_per_epoch=steps_per_epoch,
-                #                 d_model=model.masker.mha_in_dim,
-                #                 ),
-                #                     "interval": "batch",
-                #                    }
-                #else: 
-                scheduler = ReduceLROnPlateau(optimizer=optimizer,
+                if args.model in ["DPTNet", "SepFormerTasNet", "SepFormer2TasNet"]:
+                    steps_per_epoch = len(train_loader) // opt["training"]["accumulate_grad_batches"]
+                    opt["scheduler"]["steps_per_epoch"] = steps_per_epoch
+                    scheduler = {
+                                "scheduler": DPTNetScheduler(
+                                optimizer=optimizer,
+                                steps_per_epoch=steps_per_epoch,
+                                 d_model=model.masker.mha_in_dim,
+                                 ),
+                                     "interval": "batch",
+                                    }
+                else: 
+                    scheduler = ReduceLROnPlateau(optimizer=optimizer,
                                       factor=0.8,
                                       patience=opt["training"]["patience"]
                                       )
@@ -170,10 +170,10 @@ def main(args):
                 # Define callbacks
                 callbacks = []
                 checkpoint_dir = os.path.join(args.model_path, "checkpoints/")
-                if opt["datasets"]["only_training"]:
-                        monitor = "loss"
-                else:
-                        monitor = "val_loss"
+                #if opt["datasets"]["only_training"]:
+                #        monitor = "loss"
+                #else:
+                monitor = "val_loss"
                 checkpoint = ModelCheckpoint(dirpath=checkpoint_dir, 
                                         filename='{epoch}-{step}',
                                         monitor=monitor, mode="min",

@@ -1,12 +1,29 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
 # platform: linux-64
-anndata=0.7.8=py39hf3d152e_0
-pandas=1.2.5=py39hde0f152_0
-pytorch-gpu=1.10.0
-torchvision==0.11.1
-torchaudio==0.10.0
-scanpy=1.8.2=pyhd8ed1ab_0
-seaborn=0.11.2=hd8ed1ab_0
-pyaml
-pytorch-lightning==1.4.9
+anndata=0.9.1=pyhd8ed1ab_0
+asteroid=0.5.2=pypi_0
+asteroid-filterbanks=0.4.0=pypi_0
+comet-ml=3.32.8=pypi_0
+h5py=3.8.0=nompi_py310ha66b2ad_101
+mpl-scatter-density=0.7=pypi_0
+numpy=1.23.5=py310h53a5b5f_0
+pandas=1.5.3=pypi_0
+pytorch-gpu=2.0.0=cuda112py310h9871d0b_200
+pytorch-lightning=1.9.4=pypi_0
+scipy=1.10.1=py310h8deb116_0
+seaborn=0.11.2=pypi_0
+tensorboard=2.14.1=pypi_0
+tensorboard-data-server=0.7.0=pypi_0
+tensorboard-plugin-wit=1.8.1=pypi_0
+tensorboardx=2.6=pypi_0
+torch=2.0.0=pypi_0
+torch-optimizer=0.1.0=pypi_0
+torch-stoi=0.1.2=pypi_0
+torchaudio=2.0.1=pypi_0
+torchmetrics=0.11.4=pyhd8ed1ab_0
+torchvision=0.14.1=cuda112py310hb1d1f80_1
+tqdm=4.65.0=pyhd8ed1ab_1
+scanpy=1.9.3=pyhd8ed1ab_0
+pyaml=21.10.1=pypi_0
+scikit-learn=1.2.2=py310h41b6a48_1
