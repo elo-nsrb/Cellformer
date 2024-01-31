@@ -13,7 +13,8 @@ import random
 
 SAMPLE_ID_TEST = "13_1226_SMTG"
 SAMPLE_ID_VAL = "13_0038_SMTG"
-MIXTUREFIX = "_pseudobulk_data_with_sparse.csv"
+#MIXTUREFIX = "_pseudobulk_data_with_sparse.csv"
+MIXTUREFIX = "_pseudobulk_data_with_sparse.parquet.gzip"
 PORTIONFIX = "_labels_synthsize_bulk_data_with_sparse.csv"
 SEPARATEFIX = "_concatenate_celltype_specific.npz"
 class SeparationDataset(Dataset):
@@ -280,10 +281,10 @@ def prepareData(partition,
         SP_test += "trainonly"
     if not os.path.isfile(os.path.join(hdf_dir, partition + ".hdf5")):
     #if True:
-        mixture = pd.read_csv(dataset_dir 
+        mixture = pd.read_parquet(dataset_dir 
                                 + name 
-                                + MIXTUREFIX,
-                                index_col=None)
+                                + MIXTUREFIX
+                                )
         portion = pd.read_csv(dataset_dir
                                 + name
                                 + PORTIONFIX,
