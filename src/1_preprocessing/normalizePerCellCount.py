@@ -44,7 +44,8 @@ def main():
         nb_cells_t = np.concatenate(nb_cells)
 
         df_mix_t.iloc[:,:-1] = df_mix_t.iloc[:,:-1].values/np.float64(nb_cells_t)[:,None]
-        df_mix_t.to_csv(dir_path + newsavename + "_pseudobulk_data_with_sparse.csv", index=False)
+        #df_mix_t.to_csv(dir_path + newsavename + "_pseudobulk_data_with_sparse.csv", index=False)
+        df_mix_t.to_parquet(dir_path + newsavename + "_pseudobulk_data_with_sparse.parquet.gzip",  compression='gzip', index=False)
         df_labels_t.to_csv(dir_path + newsavename + "_labels_synthsize_bulk_data_with_sparse.csv", index=False)
         np.save(dir_path + newsavename + "_nb_cells_per_mixtures.npy", 
                 nb_cells)
