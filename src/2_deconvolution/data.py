@@ -252,6 +252,7 @@ def filter_data(mat, annot, key="peak_type", value="Intergenic", type="mixture")
 def prepareData(partition, 
         sample_id_test=SAMPLE_ID_TEST,
         sample_id_val=SAMPLE_ID_VAL,
+        sample_id_train=None,
         holdout=True,
         cut_val=0.2,
         binarize=False,
@@ -311,21 +312,14 @@ def prepareData(partition,
 
             sample_id = mixture["Sample_num"].unique().tolist()
             if not isinstance(sample_id_test, list):
-                sample_id_test = [it for it in sample_id if (
-                                        str(sample_id_test) in it)]
-                sample_id_val = [it for it in sample_id if (
-                                        str(sample_id_val) in it)]
-            else:
-                sample_id_test = list(set([it for it in sample_id if (
-                                        str(sp) in it for sp in sample_id_test)]))
-                sample_id_val = list(set([it for it in sample_id if (
-                                        str(sp) in it for sp in sample_id_val)]))
-            #assert sample_id_test in sample_id
+                sample_id_test =  [sample_id_test]
             if sample_id_train is None:
-                sample_id_train = [it for it in sample_id if it not in sample_id_test if not it in sample_id_val]
-            else:
-                sample_id_train = list(set([it for it in sample_id if (
-                                        str(sp) in it for sp in sample_id_train)]))
+                if sample_id_val is not None:
+                    sample_id_train = [it for it in sample_id if it not in sample_id_test if not it in sample_id_val]
+                else:
+                    sample_id_train = [it for it in sample_id if it not in sample_id_test]
+            print("sample test :" +  str(sample_id_test))
+            print("sample train :" +  str(sample_id_train))
         sample_test = sample_id_test
         sample_val = sample_id_val
         sample_train = sample_id_train
@@ -349,7 +343,8 @@ def prepareData(partition,
                                             mixture["Sample_num"].isin(
                                                         sample_train),:,:]
         if holdout:
-            sample_train = sample_train + sample_val
+            if not (sample_val is None):
+                sample_train = sample_train + sample_val
 
         mixture_train_tt = mixture[mixture["Sample_num"].isin(sample_train)]
         portion_train_tt = portion[mixture["Sample_num"].isin(sample_train)]

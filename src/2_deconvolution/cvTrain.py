@@ -8,16 +8,17 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import pandas as pd
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from asteroid.engine.schedulers import DPTNetScheduler
+from schedulers import DPTNetScheduler
 import pytorch_lightning as pl
 from src_ssl.models import *
 import asteroid
 import json
 import yaml
 from network import *
-from asteroid.models import DPRNNTasNet
-from asteroid.losses import pairwise_neg_sisdr, PITLossWrapper, singlesrc_mse, pairwise_mse, singlesrc_neg_sisdr, SinkPITLossWrapper
+#from asteroid.models import DPRNNTasNet
+#from asteroid.losses import pairwise_neg_sisdr, PITLossWrapper, singlesrc_mse, pairwise_mse, singlesrc_neg_sisdr, SinkPITLossWrapper
 from losses import singlesrc_bcewithlogit, combinedpairwiseloss, combinedsingleloss, fpplusmseloss, weightedloss
+from sklearn.model_selection import LeaveOneGroupOut, GroupKFold, KFold
 from data import *
 import argparse
 from asteroid.engine import System
@@ -57,17 +58,34 @@ def main(args):
                     "pbmc_1k_v1", "pbmc_500_nextgem", "pbmc_500_v1"]
     else:
             print("dataset not found %s"%args.dataset)
-    for s_id in list_ids:
-                opt = parse(parent_dir + "train.yml", is_tain=True)
+    opt = parse(os.path.join(parent_dir, "train.yml"), is_tain=True)
+    list_ids = []
+    with open(os.path.join(opt["datasets"]["sample_list_file"]), "r") as f:
+        list_ids = f.read().splitlines()
+    list_ids = list(set(list_ids))
+    print(list_ids)
+    list_ids.sort()
+    cv_func = opt["datasets"]["cv_func"]
+    if cv_func =="kfold":
+        kf = GroupKFold(n_splits=opt["datasets"]["k"])
+        kf.get_n_splits(list(set(list_ids)))
+        list_splits = kf.split(list_ids, groups=list_ids)
+    elif cv_func == "logo":
+        logo =  LeaveOneGroupOut()
+        list_splits = logo.split(list_ids, groups=list_ids)
+    else:
+        raise "Cross validation function not implemented"
+    for i, (train_id, test_id) in enumerate(list_splits):
+                s_id = np.asarray(list_ids)[test_id].tolist()
                 opt["datasets"]["sample_id_test"] = s_id
                 opt["datasets"]["sample_id_val"] = None
                 opt["datasets"]["hdf_dir"] = os.path.join(
                                     opt["datasets"]["hdf_dir"],
-                                            "hdfho_%s/"%(s_id))#, val_id))
+                                            "hdfho_%s/"%(i))#, val_id))
                 print(opt["datasets"]["hdf_dir"])
-                print(s_id)
+                print(i)
                 args.model_path = os.path.join(parent_dir,
-                                            "exp_%s/"%(s_id))#,val_id))
+                                            "exp_%s/"%(i))#,val_id))
                 if not os.path.exists(args.model_path):
                     os.mkdir(args.model_path)
                 save_opt(opt, args.model_path + "train.yml")
@@ -130,19 +148,19 @@ def main(args):
                 optimizer = optim.AdamW(learnable_params, lr=1e-3)
                 # Define scheduler
                 scheduler = None
-                if args.model in ["DPTNet", "SepFormerTasNet", "SepFormer2TasNet"]:
-                    steps_per_epoch = len(train_loader) // opt["training"]["accumulate_grad_batches"]
-                    opt["scheduler"]["steps_per_epoch"] = steps_per_epoch
-                    scheduler = {
-                                "scheduler": DPTNetScheduler(
-                                optimizer=optimizer,
-                                steps_per_epoch=steps_per_epoch,
-                                 d_model=model.masker.mha_in_dim,
-                                 ),
-                                     "interval": "batch",
-                                    }
-                else: 
-                    scheduler = ReduceLROnPlateau(optimizer=optimizer,
+                #if args.model in ["DPTNet", "SepFormerTasNet", "SepFormer2TasNet"]:
+                #    steps_per_epoch = len(train_loader) // opt["training"]["accumulate_grad_batches"]
+                #    opt["scheduler"]["steps_per_epoch"] = steps_per_epoch
+                #    scheduler = {
+                #                "scheduler": DPTNetScheduler(
+                #                optimizer=optimizer,
+                #                steps_per_epoch=steps_per_epoch,
+                #                 d_model=model.masker.mha_in_dim,
+                #                 ),
+                #                     "interval": "batch",
+                #                    }
+                #else: 
+                scheduler = ReduceLROnPlateau(optimizer=optimizer,
                                       factor=0.8,
                                       patience=opt["training"]["patience"]
                                       )
@@ -202,11 +220,12 @@ def main(args):
                                 callbacks=callbacks,
                                 default_root_dir=args.model_path,
                         accumulate_grad_batches=opt[ "training"]["accumulate_grad_batches"],
-                            resume_from_checkpoint=resume_from,
                                 #deterministic=True,
-                                gpus=4,
-                                auto_select_gpus=True)
-                trainer.fit(system)
+                                accelerator="gpu",
+                                devices=3,
+                                )
+                trainer.fit(system, 
+                           ckpt_path=resume_from)
 
                 best_k = {k: v.item() for k, v in checkpoint.best_k_models.items()}
                 with open(os.path.join(args.model_path, "best_k_models.json"), "w") as f:
@@ -222,6 +241,10 @@ def main(args):
                 to_save = system.model.serialize()
                 to_save.update(train_set_infos)
                 torch.save(to_save, os.path.join(args.model_path, "best_model.pth"))
+                os.remove(os.path.join(opt['datasets']["hdf_dir"],
+                                "train.hdf5"))
+                os.remove(os.path.join(opt['datasets']["hdf_dir"],
+                                "val.hdf5"))
 
 if __name__ == '__main__':
     args = parser.parse_args()
