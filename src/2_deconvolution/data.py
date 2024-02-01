@@ -47,6 +47,7 @@ class SeparationDataset(Dataset):
         self.level = level
         os.makedirs(hdf_dir, exist_ok=True)
         self.celltypes = copy.deepcopy(celltypes)
+        self.partition = partition
 
         if self.level is not None:
             self.hdf_dir = os.path.join(hdf_dir, 
@@ -122,16 +123,8 @@ class SeparationDataset(Dataset):
                 print("Adding atac-seq files to dataset (preprocessing)...")
                 real_idx = 0
                 for idx, (index, row) in enumerate(tqdm(self.mixtures.iterrows())):
-                    # Load mix
-                    lab = self.label[idx]
-                    if lab <= self.level:
-                        if not use_only_all_cells_mixtures or (use_only_all_cells_mixtures and lab == len(self.celltypes_to_use)):
                             mix_cell = np.asarray(row[:-1]).reshape((1,-1)).astype(np.float)
                             source_cells = []
-                            #for j, source in enumerate(celltypes):
-                            #    # In this case, read in cell and convert to target sampling rate
-                            #    source_cell =  separate_signal[idx, j, : ]
-                            #    source_cells.append(source_cell)
                             source_cells =  separate_signal[idx, :, : ]# np.stack(source_cells, axis=0)
                             assert(source_cells.shape[1] == mix_cell.shape[1])
 
@@ -143,6 +136,11 @@ class SeparationDataset(Dataset):
                                         shape=source_cells.shape, 
                                         dtype=source_cells.dtype, 
                                         data=source_cells)
+                            lab = [row[-1].encode("ascii", "ignore")]
+                            grp.create_dataset("label", 
+                                    shape=len(lab),
+                                    dtype="S10",
+                                        data=lab)
                             grp.attrs["length"] = mix_cell.shape[1]
                             grp.attrs["target_length"] = source_cells.shape[1]
                             real_idx +=1
@@ -170,6 +168,9 @@ class SeparationDataset(Dataset):
         mix = torch.from_numpy(cell.squeeze())
         ilens = mix.shape[0]
         ref = torch.from_numpy(targets)
+        if self.partition == "test":
+            label = self.hdf_dataset[str(index)]["label"][0].astype(str)
+            return [mix, ref, label]
 
         return [mix, ref]
 
@@ -304,7 +305,7 @@ def prepareData(partition,
                             key="chrom",value="chrY",type="separate")
             annot = annot[~(annot["chrom"] =="chrY")]
         if only_training:
-            sample_id_train = mixture["Sample_num"].unique()
+            sample_id_train = mixture["Sample_num"].unique().tolist()
             sample_id_val = sample_id_train
             sample_id_test = sample_id_train
 
@@ -380,36 +381,22 @@ def prepareData(partition,
             separate_signal_tt = separate_signal_val_tt
             portion_tt = portion_val_tt
         elif partition == "test" and not use_train:
-            mixture_tt = mixture_test_tt
-            separate_signal_tt = separate_signal_test_tt
-            portion_tt = portion_test_tt
+            mixture_tt = mixture[mixture["Sample_num"].isin(sample_test)]
+            portion_tt = portion[mixture["Sample_num"].isin(sample_test)]
+            separate_signal_tt = separate_signals[
+                                    mixture["Sample_num"].isin(
+                                                        sample_test),:,:]
             if limit is not None:
                 idd = np.random.randint(0,len(mixture_test_tt), limit)
                 mixture_test_tt = mixture_test_tt.iloc[idd]
                 portion_test_tt = portion_test_tt.iloc[idd]
                 separate_signal_test_tt = separate_signal_test_tt[idd]
-            mixture_test_tt.to_hdf(dataset_dir 
-                                + name 
-                                + str(SP_test)
-                                + "n_mixture_test.h5", 'df')
-            portion_test_tt.to_hdf(dataset_dir 
-                                + name 
-                                + str(SP_test)
-                                + "n_proportion_test.h5", 'df')
-            np.savez_compressed(dataset_dir 
-                            + name
-                            + str(SP_test)
-                            + "n_separate_test.npz", 
-                            mat=separate_signal_test_tt)
         else:
             mixture_tt = mixture_train_tt
+            portion_tt = portion[mixture["Sample_num"].isin(sample_test)]
             separate_signal_tt = separate_signal_train_tt
-            portion_tt = portion_train_tt
         len_train = len(mixture_tt)
         print("len %s: "%partition + str(len(mixture_tt)) )
-        portion_tt.rename(columns={"PER.END": "PEREND"}, inplace=True)
-        if "Unnamed: 0" in mixture_tt.columns.tolist():
-            mixture_tt.drop("Unnamed: 0",axis=1, inplace=True)
         if filter_intergenic:
             mixture_tt = filter_data(mixture_tt,
                                     annot,
@@ -440,126 +427,7 @@ def prepareData(partition,
         return _data, annot#, test_data
 
     else:
-        if partition=="test":
-            if pure:
-                mixture_test_tt = pd.read_csv(args.dataset_dir
-                                + name 
-                    + "__pure_pure__synthsize_bulk_data_with_sparse.csv",
-                    index_col=None)
-                portion_test_tt = pd.read_csv(args.dataset_dir 
-                        + name
-                        + "__pure_pure__labels_synthsize_bulk_data_with_sparse.csv",
-                        index_col=None)
-                separate_signal_test_tt = np.load(args.dataset_dir
-                        + name 
-                    + "__pure_pure__concatenat_separate_signal.npz")["mat"]
-            elif custom_testset is not None:
-                mixture_test_tt = pd.read_csv(dataset_dir 
-                                    + custom_testset 
-                            + "_synthsize_bulk_data_with_sparse.csv", 
-                            index_col=None)
-                portion_test_tt = pd.read_csv(dataset_dir 
-                        + custom_testset 
-                        + "_labels_synthsize_bulk_data_with_sparse.csv",
-                        index_col=None)
-                separate_signal_test_tt = np.load(dataset_dir 
-                                + custom_testset
-                                + "_concatenat_separate_signal.npz")["mat"]
-                if use_train:
-                    sample_id = mixture_test_tt["Sample_num"].unique()
-                    sample_id_test = [it for it in sample_id if (
-                                        str(sample_id_test) in it)]
-                    sample_id_val = [it for it in sample_id if (
-                                        str(sample_id_val) in it)]
-                    sample_test = [it for it in sample_id if it!=sample_id_test if it !=sample_id_val]
-                else:
-                    #sample_test = [sample_id_test]
-                    sample_test = [it for it in sample_id if (
-                                    str(sample_id_test) in it)]
-                portion_test_tt = portion_test_tt[
-                            mixture_test_tt["Sample_num"].isin(sample_test)]
-                separate_signal_test_tt = separate_signal_test_tt[
-                                        mixture_test_tt["Sample_num"].isin(
-                                                sample_test),:,:]
-                mixture_test_tt = mixture_test_tt[
-                                mixture_test_tt["Sample_num"].isin(sample_test)]
-            elif use_train and (custom_testset is None):
-                mixture_test_tt = pd.read_hdf(dataset_dir + 
-                                            name + str(SP_test) 
-                                            +"n_mixture_%s.h5"%"train",
-                                            'df')
-                df_s = mixture_test_tt.reset_index().groupby(
-                                            "Sample_num").sample(
-                                                            200,
-                                                            replace=False,
-                                                            random_state=1)
-                portion_test_tt= pd.read_hdf(dataset_dir +
-                        name + str(SP_test)
-                        + "n_proportion_%s.h5"%"train", 'df')
-                separate_signal_test_tt = np.load(dataset_dir + 
-                        name + str(SP_test)
-                        + "n_separate_%s.npz"%"train")["mat"]
-                mixture_test_tt = mixture_test_tt.iloc[
-                                        df_s.index.tolist(),:]
-                portion_test_tt = portion_test_tt.iloc[
-                                        df_s.index.tolist(),:]
-                separate_signal_test_tt = separate_signal_test_tt[
-                                            df_s.index.tolist(),:]
-            else:
-                mixture_test_tt = pd.read_hdf(dataset_dir + 
-                            name + str(SP_test)
-                            + "n_mixture_%s.h5"%partition, 'df')
-                portion_test_tt= pd.read_hdf(dataset_dir +
-                        name + str(SP_test)
-                        + "n_proportion_%s.h5"%partition, 'df')
-                separate_signal_test_tt = np.load(dataset_dir + 
-                        name + str(SP_test)
-                        + "n_separate_%s.npz"%partition)["mat"]
-            portion_test_tt.rename(columns={"PER.END": "PEREND"}, 
-                                    inplace=True)
-            if "promoter" in name:
-                annot = annot[~(annot["chrom"] =="chrX")]
-                annot = annot[~(annot["chrom"] =="chrY")]
-            if "Unnamed: 0" in mixture_test_tt.columns.tolist():
-                mixture_test_tt.drop("Unnamed: 0",axis=1, inplace=True)
-            if filter_intergenic:
-                mixture_test_tt = filter_data(mixture_test_tt,
-                                                annot,
-                                                key="peak_type",
-                                                value="Intergenic",
-                                                type="mixture")
-                separate_signal_test_tt = filter_data(
-                                                separate_signal_test_tt,
-                                                annot,
-                                                key="peak_type",
-                                                value="Intergenic",
-                                                type="separate")
-            if limit is not None:
-                idd = np.random.randint(0,len(mixture_test_tt), limit)
-                mixture_test_tt = mixture_test_tt.iloc[idd]
-                portion_test_tt = portion_test_tt.iloc[idd]
-                separate_signal_test_tt = separate_signal_test_tt[idd]
-
-            test_data = SeparationDataset(mixture_test_tt, 
-                                         portion_test_tt, 
-                                            separate_signal_test_tt,
-                                            celltypes,
-                                            hdf_dir, 
-                                    partition,
-                                   data_transform=crop_func,
-                                   binarize=binarize,
-                                   binarize_input=binarize_input,
-                                   normalize=normalize,
-                                   normalizeMax=normalizeMax,
-                                   pure=pure,
-                                    celltype_to_use=celltype_to_use,
-                                   offset=offset_input,
-                                   ratio=ratio_input)
-            return (test_data, mixture_test_tt, 
-                    separate_signal_test_tt, 
-                    portion_test_tt, annot)
-        else:
-            _data = SeparationDataset(None,
+        _data = SeparationDataset(None,
                                     None,
                                     None,
                                     celltypes,
@@ -589,31 +457,8 @@ def make_dataloader(partition,
                     pure=False,
                     only_training=False,
                     custom_testset=None,
+                    **kwargs,
                     ):
-    if partition == "test":
-        dataset, mix, separate, _, annot = prepareData(partition,
-                                    **data_kwargs, annot=annot,
-                                    limit=limit,
-                                    custom_testset=custom_testset,
-                                    use_train=use_train,
-                                    pure=pure)
-        celltype_to_use = data_kwargs["celltype_to_use"]
-        celltypes = data_kwargs["celltypes"]
-        _, separate = gatherCelltypes(celltype_to_use, 
-                                        separate, celltypes)
-        test_data = DataLoader(dataset,
-                    batch_size=batch_size,
-                    shuffle=is_train,
-                    num_workers=num_workers)
-        if data_kwargs["normalizeMax"]:
-            mix_tmp = mix.iloc[:,:-1].values
-            mix_tmp, separate = normalizeMaxPeak(mix_tmp, separate)
-            mix.iloc[:,:-1] = mix_tmp
-            print("mixture max:" + str(mix_tmp.max()))
-            print("separate max:" + str(separate.max()))
-
-        return test_data, mix, separate
-    else:
         dataset, annot = prepareData(partition,
                 **data_kwargs, 
                 annot=annot)

@@ -1,5 +1,6 @@
 datasets:
   add_pure: false
+  DataName: "Brain"
   binarize: false
   binarize_input: false
   celltype_to_use:
@@ -21,6 +22,7 @@ datasets:
   cut_val: 0.2
   dataset_dir: ./data/
   filter_intergenic: false
+  cv_func: "logo"
   fs: 1
   hdf_dir: .data/hdf/
   holdout: true

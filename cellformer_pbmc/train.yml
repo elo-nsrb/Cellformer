@@ -1,6 +1,7 @@
 datasets:
   add_pure: false
   binarize: false
+  DataName: "PBMC"
   binarize_input: false
   celltype_to_use:
   - B
@@ -19,6 +20,7 @@ datasets:
   cut_val: 0.2
   dataset_dir: pbmc_data/
   filter_intergenic: false
+  cv_func: "logo"
   fs: 1
   hdf_dir: pbmc_data/hdf/
   holdout: true

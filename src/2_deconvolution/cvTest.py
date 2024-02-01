@@ -10,6 +10,7 @@ import pandas as pd
 from tqdm import tqdm
 from pprint import pprint
 import torch.nn as nn
+from sklearn.model_selection import LeaveOneGroupOut, GroupKFold, KFold
 
 import asteroid
 from asteroid.metrics import get_metrics
@@ -19,7 +20,6 @@ from asteroid.models import save_publishable
 from asteroid.utils import tensors_to_device
 
 from asteroid.models import DPRNNTasNet
-from my_data import make_dataloader,gatherCelltypes
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score, roc_curve, f1_score
 from sklearn.metrics import auc,precision_recall_curve, r2_score
 from sklearn.metrics import mean_squared_error, r2_score
@@ -31,8 +31,9 @@ from src_ssl.models import *
 from src_ssl.models.sepformer_tasnet import SepFormerTasNet, SepFormer2TasNet
 import sys
 sys.path.append("../")
-from my_data import *
+from data import *
 from comparison_model import *
+from test_functions import defineMask
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='final.pth.tar',
@@ -73,7 +74,9 @@ parser.add_argument("--dataset", default="Brain")
 def main(args):
     parent_dir = args.parent_dir
     name = "cvtest"
-    if args.dataset == "Brain":
+    opt = parse(os.path.join(parent_dir, "train.yml"), is_tain=True)
+    datasetname = opt["datasets"]["DataName"]
+    if datasetname == "Brain":
         list_ids = ["13_0038","13_0419",
                     "11_0393",
                     "09_1589", "14_0586",
@@ -85,7 +88,7 @@ def main(args):
                     "11_0311",
                     "13_1226"
                     ]
-    elif args.dataset == "PBMC":
+    elif datasetname == "PBMC":
         list_ids = ["10k_pbmc", "pbmc_10k_nextgem",
                     "pbmc_10k_v1", "SUHealthy_PBMC_B1T2",
                     "pbmc_5k_nextgem", "SUHealthy_PBMC1_B1T1",
@@ -96,13 +99,31 @@ def main(args):
                     "pbmc_1k_v1", "pbmc_500_nextgem", "pbmc_500_v1"]
     else:
             print("dataset not found %s"%args.dataset)
+            list_ids = None
+    if list_ids is None:
+        list_ids = []
+        with open(os.path.join(opt["datasets"]["sample_list_file"]), "r") as f:
+            list_ids = f.read().splitlines()
+        list_ids = list(set(list_ids))
+    print(list_ids)
+    list_ids.sort()
+    cv_func = opt["datasets"]["cv_func"]
+    if cv_func =="kfold":
+        kf = GroupKFold(n_splits=opt["datasets"]["k"])
+        kf.get_n_splits(list(set(list_ids)))
+        list_splits = kf.split(list_ids, groups=list_ids)
+    elif cv_func == "logo":
+        logo =  LeaveOneGroupOut()
+        list_splits = logo.split(list_ids, groups=list_ids)
+    else:
+        raise "Cross validation function not implemented"
     res_cv_raw = None
     res_cv_mask = None
-    opt_par = parse(args.parent_dir + "train.yml", is_tain=True)
+    opt_par = parse(os.path.join(args.parent_dir , "train.yml"), is_tain=True)
     df_metrics_sub_list = []
     df_metrics_it_list = []
     gt_m = None
-    opt_p = parse(args.parent_dir + "train.yml", is_tain=True)
+    opt_p = parse(os.path.join(args.parent_dir , "train.yml"), is_tain=True)
     save_par_dir = args.parent_dir
     if not os.path.exists(save_par_dir):
         os.mkdir(save_par_dir)
@@ -110,9 +131,12 @@ def main(args):
             save_par_dir = os.path.join(save_par_dir,args.other_testset_name)
     if not os.path.exists(save_par_dir):
         os.mkdir(save_par_dir)
-    for s_id in list_ids:
+    for i, (_, _) in enumerate(list_splits):
+        if opt["datasets"]["only_training"]:
+            if i>0:
+                break
         args.model_path = os.path.join(parent_dir,
-                                    "exp_%s/"%(s_id))
+                                    "exp_%s/"%(i))
         print(args.model_path)
         model_path = os.path.join(args.model_path, args.ckpt_path)
         savedir = os.path.join(args.model_path, args.testset )
@@ -125,10 +149,10 @@ def main(args):
                     args.ckpt_path.split("/")[-1].split(".")[0])
         opt = parse(args.model_path + "train.yml", is_tain=True)
         celltypes = opt["datasets"]["celltype_to_use"]
-        opt["datasets"]["hdf_dir"]  = os.path.join(opt_p["datasets"]["hdf_dir"],  "_%s"%s_id)
+        opt["datasets"]["hdf_dir"]  = os.path.join(opt_p["datasets"]["hdf_dir"],  "_%s"%i)
         if args.other_testset_name is not None:
             opt["datasets"]["name"] = args.other_testset_name
-            opt["datasets"]["hdf_dir"]  = os.path.join(opt_p["datasets"]["hdf_dir"],  "kp_%s"%s_id)
+            opt["datasets"]["hdf_dir"]  = os.path.join(opt_p["datasets"]["hdf_dir"],  "kp_%s"%i)
             savedir = os.path.join(savedir,args.other_testset_name)
             if args.without_AST:
                 savedir += "wo_AST"
@@ -249,7 +273,7 @@ def main(args):
                 tmp = os.path.join("/home/eloiseb/experiments/deconv_rna/",
                                     ppp)
                 tmp = os.path.join(tmp,
-                                    "exp_kfold_%s/"%(s_id))
+                                    "exp_kfold_%s/"%(i))
                 if not os.path.exists(tmp):
                     os.mkdir(tmp)
                 np.savez_compressed(os.path.join(tmp, "test_predictions_"
@@ -284,11 +308,11 @@ def main(args):
                             separates,
                             celltypes,
                             label_)
-        df_metrics_per_subject["fold"] = "fold_%s"%str(s_id)
+        df_metrics_per_subject["fold"] = "fold_%s"%str(i)
         df_metrics_per_it= compute_metrics(separates_pred,
                             separates,
                             celltypes)
-        df_metrics_per_it["fold"] = "fold_%s"%str(s_id)
+        df_metrics_per_it["fold"] = "fold_%s"%str(i)
         df_metrics_per_subject.to_csv(os.path.join(savedir, "metrics_per_subjects.csv"))
         df_metrics_per_it.to_csv(os.path.join(savedir, "metrics_per_it.csv"))
         df_metrics_sub_list.append(df_metrics_per_subject)

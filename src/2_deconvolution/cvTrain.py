@@ -27,7 +27,7 @@ parser.add_argument('--parent_dir', default='final.pth.tar',
                     help='Location to save best validation model')
 parser.add_argument("--model", default="SepFormerTasNet", choices=["ConvTasNet", "DPRNNTasNet", "DPTNet", "SepFormerTasNet", "SepFormer2TasNet", "FC_MOR", "NL_MOR"])
 parser.add_argument("--gpu", default="2")
-parser.add_argument("--dataset", default="Brain")
+parser.add_argument("--dataset", default="Other")
 parser.add_argument("--resume_ckpt", default="last.ckpt", help="Checkpoint path to load for resume-training")
 parser.add_argument("--resume", action="store_true", help="Resume-training")
 
@@ -36,7 +36,9 @@ parser.add_argument("--resume", action="store_true", help="Resume-training")
 def main(args):
     seed_everything(42, workers=True)
     parent_dir = args.parent_dir
-    if args.dataset == "Brain":
+    opt = parse(os.path.join(parent_dir, "train.yml"), is_tain=True)
+    datasetname = opt["datasets"]["DataName"]
+    if datasetname == "Brain":
         list_ids = ["13_0038","13_0419", 
                     "11_0393", "09_1589", "14_0586",
                     "14_1018",
@@ -47,7 +49,7 @@ def main(args):
                     "11_0311",
                     "13_1226"
                     ]
-    elif args.dataset == "PBMC":
+    elif datasetname == "PBMC":
         list_ids = ["10k_pbmc", "pbmc_10k_nextgem",
                     "pbmc_10k_v1", "SUHealthy_PBMC_B1T2",
                     "pbmc_5k_nextgem", "SUHealthy_PBMC1_B1T1",
@@ -57,12 +59,13 @@ def main(args):
                     "scATAC_PBMC_D11T1", "pbmc_1k_nextgem",
                     "pbmc_1k_v1", "pbmc_500_nextgem", "pbmc_500_v1"]
     else:
-            print("dataset not found %s"%args.dataset)
-    opt = parse(os.path.join(parent_dir, "train.yml"), is_tain=True)
-    list_ids = []
-    with open(os.path.join(opt["datasets"]["sample_list_file"]), "r") as f:
-        list_ids = f.read().splitlines()
-    list_ids = list(set(list_ids))
+            #print("dataset not found %s"%args.dataset)
+            list_ids = None
+    if list_ids is None:
+        list_ids = []
+        with open(os.path.join(opt["datasets"]["sample_list_file"]), "r") as f:
+            list_ids = f.read().splitlines()
+        list_ids = list(set(list_ids))
     print(list_ids)
     list_ids.sort()
     cv_func = opt["datasets"]["cv_func"]
@@ -75,176 +78,184 @@ def main(args):
         list_splits = logo.split(list_ids, groups=list_ids)
     else:
         raise "Cross validation function not implemented"
+        
     for i, (train_id, test_id) in enumerate(list_splits):
-                s_id = np.asarray(list_ids)[test_id].tolist()
-                opt["datasets"]["sample_id_test"] = s_id
-                opt["datasets"]["sample_id_val"] = None
-                opt["datasets"]["hdf_dir"] = os.path.join(
-                                    opt["datasets"]["hdf_dir"],
-                                            "hdfho_%s/"%(i))#, val_id))
-                print(opt["datasets"]["hdf_dir"])
-                print(i)
-                args.model_path = os.path.join(parent_dir,
-                                            "exp_%s/"%(i))#,val_id))
-                if not os.path.exists(args.model_path):
-                    os.mkdir(args.model_path)
-                save_opt(opt, args.model_path + "train.yml")
-                logger = get_logger(__name__)
-                logger.info('Building the model of %s'%args.model)
-                train_loader = make_dataloader("train", 
-                                                is_train=True,
-                                                data_kwargs=opt['datasets'],
-                                                num_workers=opt['datasets']
-                                               ['num_workers'],
-                                               batch_size=opt["training"]["batch_size"],
-                                               ratio=opt['datasets']["ratio"])#.data_loader
-                val_loader = make_dataloader("val",is_train=True,
-                                            data_kwargs=opt['datasets'], 
-                                            num_workers=opt['datasets'] ['num_workers'],
-                                            batch_size=opt["training"]["batch_size"],
-                                            ratio=opt['datasets']["ratio"])
+        if opt["datasets"]["only_training"]:
+            if i>0:
+                break
+        opt = parse(os.path.join(parent_dir, "train.yml"), is_tain=True)
+        s_id = np.asarray(list_ids)[test_id].tolist()
+        if opt["datasets"]["only_training"]:
+            opt["datasets"]["sample_id_test"] = []
+        else:
+            opt["datasets"]["sample_id_test"] = s_id
+        opt["datasets"]["sample_id_val"] = None
+        opt["datasets"]["hdf_dir"] = os.path.join(
+                            opt["datasets"]["hdf_dir"],
+                                    "hdfho_%s/"%(i))#, val_id))
+        print(opt["datasets"]["hdf_dir"])
+        print(i)
+        args.model_path = os.path.join(parent_dir,
+                                    "exp_%s/"%(i))#,val_id))
+        if not os.path.exists(args.model_path):
+            os.mkdir(args.model_path)
+        save_opt(opt, args.model_path + "train.yml")
+        logger = get_logger(__name__)
+        logger.info('Building the model of %s'%args.model)
+        train_loader = make_dataloader("train", 
+                                        is_train=True,
+                                        data_kwargs=opt['datasets'],
+                                        num_workers=opt['datasets']
+                                       ['num_workers'],
+                                       batch_size=opt["training"]["batch_size"],
+                                       ratio=opt['datasets']["ratio"])#.data_loader
+        val_loader = make_dataloader("val",is_train=True,
+                                    data_kwargs=opt['datasets'], 
+                                    num_workers=opt['datasets'] ['num_workers'],
+                                    batch_size=opt["training"]["batch_size"],
+                                    ratio=opt['datasets']["ratio"])
 
 
-                n_src = len(opt["datasets"]["celltype_to_use"])
+        n_src = len(opt["datasets"]["celltype_to_use"])
 
-                if args.model == "FC_MOR":
-                    model = MultiOutputRegression(**opt["net"])
-                    print(model)
-                elif args.model == "NL_MOR":
-                    model = NonLinearMultiOutputRegression(**opt["net"])
-                    print(model)
-                else:
-                    model = getattr(asteroid.models, args.model)(**opt["filterbank"], **opt["masknet"])
+        if args.model == "FC_MOR":
+            model = MultiOutputRegression(**opt["net"])
+            print(model)
+        elif args.model == "NL_MOR":
+            model = NonLinearMultiOutputRegression(**opt["net"])
+            print(model)
+        else:
+            model = getattr(asteroid.models, args.model)(**opt["filterbank"], **opt["masknet"])
 
-                learnable_params = list(model.parameters())
-                if opt["training"]["loss"] == "neg_sisdr":
-                    loss_func = pairwise_neg_sisdr 
-                    loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-                elif opt["training"]["loss"] == "mse_no_pit":
-                    #loss = nn.MSELoss()
-                    if opt["training"]["weights"] is not None:
-                        weights = np.asarray(opt["training"]["weights"])
-                    else:
-                        weights = None
-                    loss = weightedloss(src=n_src, weights=weights)
-                elif opt["training"]["loss"] == "mse_weighted":
-                    #loss = nn.MSELoss()
-                    loss = weightedloss(src=n_src, method="Uncertainty")
-                    learnable_params += list(loss.parameters())
+        learnable_params = list(model.parameters())
+        if opt["training"]["loss"] == "neg_sisdr":
+            loss_func = pairwise_neg_sisdr 
+            loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
+        elif opt["training"]["loss"] == "mse_no_pit":
+            #loss = nn.MSELoss()
+            if opt["training"]["weights"] is not None:
+                weights = np.asarray(opt["training"]["weights"])
+            else:
+                weights = None
+            loss = weightedloss(src=n_src, weights=weights)
+        elif opt["training"]["loss"] == "mse_weighted":
+            #loss = nn.MSELoss()
+            loss = weightedloss(src=n_src, method="Uncertainty")
+            learnable_params += list(loss.parameters())
 
-                elif opt["training"]["loss"] == "bce":
-                    loss_func = singlesrc_bcewithlogit
-                    loss = PITLossWrapper(loss_func, pit_from="pw_pt")
-                elif opt["training"]["loss"] == "combined":
-                    loss_func = combinedpairwiseloss
-                    loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-                elif opt["training"]["loss"] == "combined_sc_no_pit":
-                    loss = combinedsingleloss
-                    #loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
-                elif opt["training"]["loss"] == "fp_mse":
-                    loss_func = fpplusmseloss
-                    loss = PITLossWrapper(loss_func, pit_from="pw_pt")
+        elif opt["training"]["loss"] == "bce":
+            loss_func = singlesrc_bcewithlogit
+            loss = PITLossWrapper(loss_func, pit_from="pw_pt")
+        elif opt["training"]["loss"] == "combined":
+            loss_func = combinedpairwiseloss
+            loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
+        elif opt["training"]["loss"] == "combined_sc_no_pit":
+            loss = combinedsingleloss
+            #loss = PITLossWrapper(loss_func, pit_from="pw_mtx")
+        elif opt["training"]["loss"] == "fp_mse":
+            loss_func = fpplusmseloss
+            loss = PITLossWrapper(loss_func, pit_from="pw_pt")
 
-                optimizer = optim.AdamW(learnable_params, lr=1e-3)
-                # Define scheduler
-                scheduler = None
-                if args.model in ["DPTNet", "SepFormerTasNet", "SepFormer2TasNet"]:
-                    steps_per_epoch = len(train_loader) // opt["training"]["accumulate_grad_batches"]
-                    opt["scheduler"]["steps_per_epoch"] = steps_per_epoch
-                    scheduler = {
-                                "scheduler": DPTNetScheduler(
-                                optimizer=optimizer,
-                                steps_per_epoch=steps_per_epoch,
-                                 d_model=model.masker.mha_in_dim,
-                                 ),
-                                     "interval": "batch",
-                                    }
-                else: 
-                    scheduler = ReduceLROnPlateau(optimizer=optimizer,
-                                      factor=0.8,
-                                      patience=opt["training"]["patience"]
-                                      )
-                system = System(model, optimizer, loss,
-                        train_loader, val_loader,
-                        scheduler=scheduler)
-                # Define callbacks
-                callbacks = []
-                checkpoint_dir = os.path.join(args.model_path, "checkpoints/")
-                #if opt["datasets"]["only_training"]:
-                #        monitor = "loss"
-                #else:
-                monitor = "val_loss"
-                checkpoint = ModelCheckpoint(dirpath=checkpoint_dir, 
-                                        filename='{epoch}-{step}',
-                                        monitor=monitor, mode="min",
-                                    save_top_k=opt["training"]["save_epochs"],
-                                    save_last=True, verbose=True,
-                                     )
-                callbacks.append(checkpoint)
-                if opt["training"]["early_stop"]:
+        optimizer = optim.AdamW(learnable_params, lr=1e-3)
+        # Define scheduler
+        scheduler = None
+        if args.model in ["DPTNet", "SepFormerTasNet", "SepFormer2TasNet"]:
+            steps_per_epoch = len(train_loader) // opt["training"]["accumulate_grad_batches"]
+            opt["scheduler"]["steps_per_epoch"] = steps_per_epoch
+            scheduler = {
+                        "scheduler": DPTNetScheduler(
+                        optimizer=optimizer,
+                        steps_per_epoch=steps_per_epoch,
+                         d_model=model.masker.mha_in_dim,
+                         ),
+                             "interval": "batch",
+                            }
+        else: 
+            scheduler = ReduceLROnPlateau(optimizer=optimizer,
+                              factor=0.8,
+                              patience=opt["training"]["patience"]
+                              )
+        system = System(model, optimizer, loss,
+                train_loader, val_loader,
+                scheduler=scheduler)
+        # Define callbacks
+        callbacks = []
+        checkpoint_dir = os.path.join(args.model_path, "checkpoints/")
+        #if opt["datasets"]["only_training"]:
+        #        monitor = "loss"
+        #else:
+        monitor = "val_loss"
+        checkpoint = ModelCheckpoint(dirpath=checkpoint_dir, 
+                                filename='{epoch}-{step}',
+                                monitor=monitor, mode="min",
+                            save_top_k=opt["training"]["save_epochs"],
+                            save_last=True, verbose=True,
+                             )
+        callbacks.append(checkpoint)
+        if opt["training"]["early_stop"]:
 
-                    callbacks.append(EarlyStopping(monitor=monitor, 
-                                        mode="min", 
-                                        patience=opt["training"]["patience"],
-                                        verbose=True,
-                                        min_delta=0.0))
+            callbacks.append(EarlyStopping(monitor=monitor, 
+                                mode="min", 
+                                patience=opt["training"]["patience"],
+                                verbose=True,
+                                min_delta=0.0))
 
-                loggers = []
-                tb_logger = pl.loggers.TensorBoardLogger(
-                os.path.join(args.model_path, "tb_logs/"),
+        loggers = []
+        tb_logger = pl.loggers.TensorBoardLogger(
+        os.path.join(args.model_path, "tb_logs/"),
+        )
+        loggers.append(tb_logger)
+        if opt["training"]["comet"]:
+            comet_logger = pl.loggers.CometLogger(
+                save_dir=os.path.join(args.model_path, "comet_logs/"),
+                experiment_key=opt["training"].get("comet_exp_key", None),
+                log_code=True,
+                log_graph=True,
+                parse_args=True,
+                log_env_details=True,
+                log_git_metadata=True,
+                log_git_patch=True,
+                log_env_gpu=True,
+                log_env_cpu=True,
+                log_env_host=True,
                 )
-                loggers.append(tb_logger)
-                if opt["training"]["comet"]:
-                    comet_logger = pl.loggers.CometLogger(
-                        save_dir=os.path.join(args.model_path, "comet_logs/"),
-                        experiment_key=opt["training"].get("comet_exp_key", None),
-                        log_code=True,
-                        log_graph=True,
-                        parse_args=True,
-                        log_env_details=True,
-                        log_git_metadata=True,
-                        log_git_patch=True,
-                        log_env_gpu=True,
-                        log_env_cpu=True,
-                        log_env_host=True,
+            comet_logger.log_hyperparams(opt)
+            loggers.append(comet_logger)
+
+        if args.resume:
+            resume_from = os.path.join(checkpoint_dir, args.resume_ckpt)
+        else:
+            resume_from = None
+        trainer = Trainer(max_epochs=opt["training"]["epochs"],
+                        logger=loggers,
+                        callbacks=callbacks,
+                        default_root_dir=args.model_path,
+                accumulate_grad_batches=opt[ "training"]["accumulate_grad_batches"],
+                        #deterministic=True,
+                        accelerator="gpu",
+                        devices=3,
                         )
-                    comet_logger.log_hyperparams(opt)
-                    loggers.append(comet_logger)
+        trainer.fit(system, 
+                   ckpt_path=resume_from)
 
-                if args.resume:
-                    resume_from = os.path.join(checkpoint_dir, args.resume_ckpt)
-                else:
-                    resume_from = None
-                trainer = Trainer(max_epochs=opt["training"]["epochs"],
-                                logger=loggers,
-                                callbacks=callbacks,
-                                default_root_dir=args.model_path,
-                        accumulate_grad_batches=opt[ "training"]["accumulate_grad_batches"],
-                                #deterministic=True,
-                                accelerator="gpu",
-                                devices=3,
-                                )
-                trainer.fit(system, 
-                           ckpt_path=resume_from)
+        best_k = {k: v.item() for k, v in checkpoint.best_k_models.items()}
+        with open(os.path.join(args.model_path, "best_k_models.json"), "w") as f:
+                json.dump(best_k, f, indent=0)
 
-                best_k = {k: v.item() for k, v in checkpoint.best_k_models.items()}
-                with open(os.path.join(args.model_path, "best_k_models.json"), "w") as f:
-                        json.dump(best_k, f, indent=0)
+        state_dict = torch.load(checkpoint.best_model_path)
+        system.load_state_dict(state_dict=state_dict["state_dict"])
+        system.cpu()
 
-                state_dict = torch.load(checkpoint.best_model_path)
-                system.load_state_dict(state_dict=state_dict["state_dict"])
-                system.cpu()
+        train_set_infos = dict()
+        train_set_infos["dataset"] = "corces"
 
-                train_set_infos = dict()
-                train_set_infos["dataset"] = "corces"
-
-                to_save = system.model.serialize()
-                to_save.update(train_set_infos)
-                torch.save(to_save, os.path.join(args.model_path, "best_model.pth"))
-                os.remove(os.path.join(opt['datasets']["hdf_dir"],
-                                "train.hdf5"))
-                os.remove(os.path.join(opt['datasets']["hdf_dir"],
-                                "val.hdf5"))
+        to_save = system.model.serialize()
+        to_save.update(train_set_infos)
+        torch.save(to_save, os.path.join(args.model_path, "best_model.pth"))
+        os.remove(os.path.join(opt['datasets']["hdf_dir"],
+                        "train.hdf5"))
+        os.remove(os.path.join(opt['datasets']["hdf_dir"],
+                        "val.hdf5"))
 
 if __name__ == '__main__':
     args = parser.parse_args()
