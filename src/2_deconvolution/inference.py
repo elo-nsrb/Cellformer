@@ -11,10 +11,6 @@ from pprint import pprint
 import torch.nn as nn 
 
 import asteroid
-from asteroid.metrics import get_metrics
-from asteroid.data.librimix_dataset import LibriMix
-from asteroid.data.wsj0_mix import Wsj0mixDataset
-from asteroid.losses import PITLossWrapper, pairwise_neg_sisdr
 from asteroid.models import save_publishable
 from asteroid.utils import tensors_to_device
 
@@ -30,8 +26,6 @@ import pandas as pd
 from utils import get_logger, parse #device, 
 from src_ssl.models import *
 from src_ssl.models.sepformer_tasnet import SepFormerTasNet, SepFormer2TasNet
-from asteroid.losses import PITLossWrapper, pairwise_neg_sisdr
-from asteroid.losses import pairwise_neg_sisdr, PITLossWrapper, singlesrc_mse, pairwise_mse, singlesrc_neg_sisdr
 from losses import *
 from network import *
 
@@ -74,7 +68,7 @@ def main(args):
         if not os.path.exists(savedir):
             os.mkdir(savedir)
 
-    opt = parse(args.model_path + "train.yml", is_tain=True)
+    opt = parse(os.path.join(args.model_path, "train.yml"), is_tain=True)
     annotations = pd.read_csv(opt["datasets"]["dataset_dir"] + opt["datasets"]["name"] + "_annotations.csv")
     if annotations.isna().sum().sum() !=0:
         annotations.fillna("Unknown",inplace=True)
