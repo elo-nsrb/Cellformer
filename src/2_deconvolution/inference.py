@@ -106,7 +106,7 @@ def main(args):
     celltypes = opt["datasets"]["celltype_to_use"]
     num_spk = len(celltypes)
     if args.mask:
-        mask = np.load(args.model_path + "MASK.npy")
+        mask = np.load(os.path.join(args.model_path, "MASK.npy"))
         savedir += "/masked/"
         if not os.path.exists(savedir):
             os.mkdir(savedir)
