@@ -13,8 +13,8 @@ import torch.nn as nn
 from sklearn.model_selection import LeaveOneGroupOut, GroupKFold, KFold
 
 import asteroid
-from asteroid.metrics import get_metrics
-from asteroid.losses import *
+#from asteroid.metrics import get_metrics
+#from asteroid.losses import *
 
 from asteroid.models import save_publishable
 from asteroid.utils import tensors_to_device
@@ -122,6 +122,8 @@ def main(args):
     opt_par = parse(os.path.join(args.parent_dir , "train.yml"), is_tain=True)
     df_metrics_sub_list = []
     df_metrics_it_list = []
+    df_metrics_g_list = []
+    metrics = ["spearman", "rmse", "auc", "auprc", "pearson", "prevalence"]
     gt_m = None
     opt_p = parse(os.path.join(args.parent_dir , "train.yml"), is_tain=True)
     save_par_dir = args.parent_dir
@@ -222,7 +224,7 @@ def main(args):
             separate_ = []
             separate_pred = []
             label_ = []
-            for i, batch in enumerate(val_loader):
+            for jj, batch in enumerate(val_loader):
             #if i*len(batch)<limit:
                 with torch.no_grad():
                     mix = batch[0]
@@ -244,10 +246,10 @@ def main(args):
                     label_.append(label)
             mixtures = np.concatenate(mixture_)
             separates = np.concatenate(separate_)
-            separates_pred = np.concatenate(separate_pred)
+            separates_pred_raw = np.concatenate(separate_pred)
             if not os.path.exists(args.model_path + "MASK.npy"):
                 mask = defineMask(separates,
-                                    separates_pred,
+                                    separates_pred_raw,
                                     celltypes,
                                     savedir,
                                     name + "MASK_TRAINSET")
@@ -257,7 +259,7 @@ def main(args):
                 name += "mask"
            # if not val_loader.dataset.gene_filtering is None:
             del model
-            separates_pred = separates_pred*mask
+            separates_pred = separates_pred_raw*mask
             separates = separates*mask
             torch.cuda.empty_cache()
             name = args.testset + "_" + str(args.pure)
@@ -295,6 +297,7 @@ def main(args):
 
         separates[np.isnan(separates)] = 0
         separates_pred[np.isnan(separates_pred)] = 0
+        separates_pred_raw[np.isnan(separates_pred_raw)] = 0
         if args.without_MIC:
             separates_pred = separates_pred[:, [0,1,2,4,5], :]
             separates = separates[:, [0,1,2,4,5], :]
@@ -304,19 +307,29 @@ def main(args):
             separates_pred = separates_pred[:, [0,1,2,3,5], :]
             separates = separates[:, [0,1,2,3,5], :]
             celltypes.remove("OPCs")
+        print("compupte metrics")
         df_metrics_per_subject= compute_metrics_per_subject(separates_pred,
                             separates,
                             celltypes,
-                            label_)
+                            label_,
+                            metrics=metrics)
         df_metrics_per_subject["fold"] = "fold_%s"%str(i)
         df_metrics_per_it= compute_metrics(separates_pred,
                             separates,
-                            celltypes)
+                            celltypes,
+                            metrics=metrics)
         df_metrics_per_it["fold"] = "fold_%s"%str(i)
+        #df_metrics_per_genes= compute_metrics_per_genes(separates_pred_raw,
+        #                    separates,
+        #                    celltypes,
+        #                    list(np.arange(separates.shape[-1])))
+        #df_metrics_per_genes["fold"] = "fold_%s"%str(i)
         df_metrics_per_subject.to_csv(os.path.join(savedir, "metrics_per_subjects.csv"))
         df_metrics_per_it.to_csv(os.path.join(savedir, "metrics_per_it.csv"))
+        #df_metrics_per_genes.to_csv(os.path.join(savedir, "metrics_per_peaks.csv"))
         df_metrics_sub_list.append(df_metrics_per_subject)
         df_metrics_it_list.append(df_metrics_per_it)
+        #df_metrics_g_list.append(df_metrics_per_genes)
     df_metrics = pd.concat(df_metrics_it_list)
     df_metrics.to_csv(os.path.join(save_par_dir,
                         "metrics_all_per_it.csv"),
@@ -325,6 +338,10 @@ def main(args):
     df_metrics.to_csv(os.path.join(save_par_dir,
                         "metrics_all_per_sub.csv"),
                     index=None)
+    #df_metrics = pd.concat(df_metrics_g_list)
+    #df_metrics.to_csv(os.path.join(save_par_dir,
+    #                    "metrics_all_per_genes.csv"),
+    #                index=None)
 
 
 

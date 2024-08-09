@@ -1,4 +1,4 @@
-import os 
+import os
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -13,7 +13,6 @@ from scipy.stats import mannwhitneyu
 from scipy.stats import wilcoxon
 import scanpy as sc
 import anndata as ad
-import episcanpy.api as epi
 import random
 from sklearn.utils import shuffle
 from sklearn.metrics import mean_squared_error
@@ -52,8 +51,8 @@ def gatherResults(bulk_path,
             idi = condition + "_" + brain_region + "_" + disease
             mixture_path = bulk_path + disease + "/" + disease + "/" + condition + "/" + idi + ".peak_countMatrix.txt" 
 
-            if os.path.exists(model_path + idi + ".csv"):
-                pred_bulk = pd.read_csv(model_path + idi + ".csv")
+            if os.path.exists(os.path.join(model_path, idi + ".csv")):
+                pred_bulk = pd.read_csv(os.path.join(model_path , idi + ".csv"))
                 pred_bulk.columns = ["Unnamed: 0"] + list_peaks + ["celltype"]
                 mixture = pd.read_csv(mixture_path, sep="\t" ,header=1)
         
@@ -63,7 +62,7 @@ def gatherResults(bulk_path,
                 mix.columns = list_peaks
 
                 pred_bulk["replicate"] = pred_bulk["Unnamed: 0"].str.split("_B1_T",expand=True)[1].str.split("_", expand=True)[0]
-                pred_bulk["Sample_id"] = pred_bulk["Unnamed: 0"].str.split("L0|L1",expand=True)[0].str.split("/", expand=True)[7]
+                pred_bulk["Sample_id"] = pred_bulk["Unnamed: 0"].str.split("L0|L1",expand=True)[0].str.split("/", expand=True)[10]
                 pred_bulk["brain_region"] = brain_region
                 pred_bulk["condition"] = condition
                 mix["brain_region"] = brain_region
@@ -76,7 +75,7 @@ def gatherResults(bulk_path,
                 all_samples.append(pred_bulk)
                 all_samples.append(mix)
     df_all_samples = pd.concat(all_samples, axis=0)
-    df_all_samples["Name"] = df_all_samples.reset_index()["Unnamed: 0"].str.split("/", expand=True)[7].str.split(".", expand=True)[0].tolist()
+    df_all_samples["Name"] = df_all_samples.reset_index()["Unnamed: 0"].str.split("/", expand=True)[10].str.split(".", expand=True)[0].tolist()
     metadata = metadata[metadata.HarmonizedName.isin(df_all_samples.Name.tolist())]
     metadata["Name"] = metadata["HarmonizedName"].tolist()
     df_all_samples = df_all_samples.join(metadata.set_index("Name"), on="Name")
@@ -86,52 +85,56 @@ def gatherResults(bulk_path,
         if ct != "bulk":
             df_all_samples.loc[
                 df_all_samples.celltype ==ct, 
-                list_peaks] = (df_all_samples[
+                list_peaks] = ((df_all_samples[
                                 df_all_samples.celltype ==ct][
-                                    list_peaks].clip(lower=0)).astype(int)
-    df_all_samples = df_all_samples[df_all_samples.condition !="ADAD"]
-    df_all_samples = df_all_samples.loc[:,~(df_all_samples.isna().sum()>1500)]
+                                    list_peaks]*10000).clip(lower=0))#.astype(int)
+    if disease =="AD":
+        df_all_samples = df_all_samples[df_all_samples.condition !="ADAD"]
+        df_all_samples = df_all_samples.loc[:,~(df_all_samples.isna().sum()>1500)]
 
 
-    list_predict = ["xxx.ch_lastCasiScore", 
-                "xxx.expired_age", "PMI",
-                "xxx.last_mmse_test_score", "ApoE",
-                "xxx.Cerad NP","xxx.Braak score" ,
-                "xxx.calc_NIA_AA","xxx.calc_B","xxx.C","xxx.calc_A",
-                "xxx.AP_freshBrainWeight","xxx.calc_thalPhase",
-                "xxx.GE_atherosclerosis_ID", "xxx.calc_B",
-                "xxx.micro_AmyloidAngiopathyOccipitalLobe_ID"]
+        list_predict = ["xxx.ch_lastCasiScore", 
+                    "xxx.expired_age", "PMI",
+                    "xxx.last_mmse_test_score", "ApoE",
+                    "xxx.Cerad NP","xxx.Braak score" ,
+                    "xxx.calc_NIA_AA","xxx.calc_B","xxx.C","xxx.calc_A",
+                    "xxx.AP_freshBrainWeight","xxx.calc_thalPhase",
+                    "xxx.GE_atherosclerosis_ID", "xxx.calc_B",
+                    "xxx.micro_AmyloidAngiopathyOccipitalLobe_ID"]
 
-    df_all_samples.loc[df_all_samples.loc[:,'ApoE'].isna(), "ApoE"] = "Unk"
-    braak_map = {'0':0, 'II':2, 'IV':4, 'III':3, 'V':5, 'VI':6, 'I':1}
-    df_all_samples["xxx.Braak score"] = df_all_samples["xxx.Braak score"].map(braak_map) 
-    df_all_samples["binarize_braak"] = (df_all_samples["xxx.Braak score"]<3).astype(int)
-    list_predict.append("binarize_braak")
+        df_all_samples.loc[df_all_samples.loc[:,'ApoE'].isna(), "ApoE"] = "Unk"
+        braak_map = {'0':0, 'II':2, 'IV':4, 'III':3, 'V':5, 'VI':6, 'I':1}
+        df_all_samples["xxx.Braak score"] = df_all_samples["xxx.Braak score"].map(braak_map) 
+        df_all_samples["binarize_braak"] = (df_all_samples["xxx.Braak score"]<3).astype(int)
+        list_predict.append("binarize_braak")
 
-    cerad_map = {"No neuritic plaques (C0)":0, "Moderate (C2)":2,
-    "Frequent (C3)":3}
-    df_all_samples["xxx.Cerad NP"] = df_all_samples["xxx.Cerad NP"].map(cerad_map)
-    df_all_samples["binarize_cerad_np"] = (df_all_samples["xxx.Cerad NP"]<1).astype(int)
-    list_predict.append("binarize_cerad_np")
-    df_all_samples["Pathology_B"] = df_all_samples["binarize_braak"].values
-    mapp_path = {1:"low", 0:"high"}
-    df_all_samples["Pathology_B"] = df_all_samples["Pathology_B"].apply(lambda x : mapp_path[x])
+        cerad_map = {"No neuritic plaques (C0)":0, "Moderate (C2)":2,
+        "Frequent (C3)":3}
+        df_all_samples["xxx.Cerad NP"] = df_all_samples["xxx.Cerad NP"].map(cerad_map)
+        df_all_samples["binarize_cerad_np"] = (df_all_samples["xxx.Cerad NP"]<1).astype(int)
+        list_predict.append("binarize_cerad_np")
+        df_all_samples["Pathology_B"] = df_all_samples["binarize_braak"].values
+        mapp_path = {1:"low", 0:"high"}
+        df_all_samples["Pathology_B"] = df_all_samples["Pathology_B"].apply(lambda x : mapp_path[x])
 
-    df_all_samples["label"] = df_all_samples["condition"].values
-    df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus'].str.contains("No") )& (df_all_samples["Pathology_B"]=="high"), "label"] ="RAD"
-    df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="Dementia") & (df_all_samples["Pathology_B"]=="high"), "label"] ="ADD"
-    df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="No dementia") & (df_all_samples["Pathology_B"]=="low"), "label"] ="NC"
-    df_all_samples.loc[((df_all_samples.label =="RAD") &(df_all_samples["xxx.Cerad NP"] == 0)),"label"] = "Na"
+        df_all_samples["label"] = df_all_samples["condition"].values
+        df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus'].str.contains("No") )& (df_all_samples["Pathology_B"]=="high"), "label"] ="RAD"
+        df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="Dementia") & (df_all_samples["Pathology_B"]=="high"), "label"] ="ADD"
+        df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="No dementia") & (df_all_samples["Pathology_B"]=="low"), "label"] ="NC"
+        df_all_samples.loc[((df_all_samples.label =="RAD") &(df_all_samples["xxx.Cerad NP"] == 0)),"label"] = "Na"
 
-    list_predict.append("label")
+        list_predict.append("label")
 
-    df_all_samples["label_cerad"] = df_all_samples["condition"].values
-    df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus'].str.contains("No") )& (df_all_samples["binarize_cerad_np"]==0), "label_cerad"] ="RAD"
-    df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="Dementia") & (df_all_samples["binarize_cerad_np"]==0), "label_cerad"] ="ADD"
-    df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="No dementia") & (df_all_samples["binarize_cerad_np"]==1), "label_cerad"] ="NC"
-    list_predict.append("label_cerad")
+        df_all_samples["label_cerad"] = df_all_samples["condition"].values
+        df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus'].str.contains("No") )& (df_all_samples["binarize_cerad_np"]==0), "label_cerad"] ="RAD"
+        df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="Dementia") & (df_all_samples["binarize_cerad_np"]==0), "label_cerad"] ="ADD"
+        df_all_samples.loc[(df_all_samples['xxx.CognitiveStatus']=="No dementia") & (df_all_samples["binarize_cerad_np"]==1), "label_cerad"] ="NC"
+        list_predict.append("label_cerad")
 
-    df_all_samples.to_csv(savepath + "/All_samples_inference_with_ANNOT_not_clip.csv", index=0)
+        df_all_samples.to_csv(savepath + "/All_samples_inference_with_ANNOT_not_clip.csv", index=0)
+    else:
+        df_all_samples.to_csv(savepath + "/PD_All_samples_inference_with_ANNOT.csv", index=0)
+    print("Save file")
     return df_all_samples
 
 def concat_metadata(df, metadata):
@@ -154,6 +157,7 @@ def randomBioreplicatesTesting(df_all_samples,
     list_non_replicate = tmp[tmp==1].reset_index()["Sample_id"].tolist()
     print(df_all_samples[df_all_samples.Sample_id.isin(list_non_replicate)].groupby("celltype").size())
     df_all_sample_filt = df_all_samples[~df_all_samples.Sample_id.isin(list_non_replicate)]
+    df_all_sample_filt = df_all_sample_filt[df_all_sample_filt.celltype!="bulk"]
 
     df_corr_pseudo_pred_bulk_bulk = pd.DataFrame(columns=["sample_id","Brain_region", "condition",
                                                       "spearman_corr", "pearson_corr", "mse"])
@@ -195,22 +199,25 @@ def randomBioreplicatesTesting(df_all_samples,
             pred_bulk = df_all_sample_filt[
                     (df_all_sample_filt.brain_region ==brain_region)
                               & (df_all_sample_filt.condition ==condition )]
-            mixture = pd.read_csv(mixture_path, sep="\t" ,header=1)
 
+            mixture = pd.read_csv(mixture_path, sep="\t" ,header=1)
 
             pseudo_1 = pred_bulk[pred_bulk.replicate =="1"].drop(["replicate","Unnamed: 0"], 
                                                                  axis=1).set_index(["Sample_id", 
-                                                                                    "celltype"])
+                                                                     "celltype"]).iloc[:, :len(list_peaks)]
 
     
             pseudo_2 = pred_bulk[pred_bulk.replicate =="2"].drop(["replicate",
-                                                                  "Unnamed: 0"], axis=1).set_index(["Sample_id",
-                                                                                                    "celltype"])
+                                                                  "Unnamed: 0"], 
+
+                                                        axis=1).set_index(["Sample_id",
+                                                            "celltype"]).iloc[:, :len(list_peaks)]
 
             cor_repl = pseudo_1.corrwith(pseudo_2, axis=1, method="spearman")
 
             pseudo_2_random = pred_bulk[pred_bulk.replicate =="2"].drop(["replicate",
-                                                                         "Unnamed: 0" ], axis=1).copy(deep=True)
+                                                                         "Unnamed: 0" ],
+                                                                         axis=1).copy(deep=True)
 
             sufffle_id, shuffle_celltype = shuffle(pseudo_2_random["Sample_id"].values.tolist(),
                              pseudo_2_random["celltype"].values.tolist(),
@@ -218,7 +225,7 @@ def randomBioreplicatesTesting(df_all_samples,
             ll = sufffle_id
             pseudo_2_random["Sample_id"] = sufffle_id
             pseudo_2_random["celltype"] = shuffle_celltype
-            pseudo_2_random = pseudo_2_random.set_index(["Sample_id", "celltype"])
+            pseudo_2_random = pseudo_2_random.set_index(["Sample_id", "celltype"]).iloc[:, :len(list_peaks)]
             cor_repl_random = pseudo_1.corrwith(pseudo_2_random, 
                                                 axis=1, 
                                                 method="spearman")
@@ -237,7 +244,7 @@ def randomBioreplicatesTesting(df_all_samples,
             pseudo_2_random_2["celltype"] = shuffle_celltype
             pseudo_2_random_2["brain_region"] = shuffle_br
             pseudo_2_random_2 =pseudo_2_random_2[pseudo_2_random_2.brain_region == brain_region]
-            pseudo_2_random_2 = pseudo_2_random_2.set_index(["Sample_id", "celltype"])
+            pseudo_2_random_2 = pseudo_2_random_2.set_index(["Sample_id", "celltype"]).iloc[:, :len(list_peaks)]
             cor_repl_random_2 = pseudo_1.corrwith(pseudo_2_random_2, axis=1, method="spearman")
 
             pseudo_2_random_3 = df_all_sample_filt[
@@ -254,7 +261,7 @@ def randomBioreplicatesTesting(df_all_samples,
             pseudo_2_random_3["celltype"] = shuffle_celltype
             pseudo_2_random_3["condition"] = shuffle_condition
             pseudo_2_random_3 =pseudo_2_random_3[pseudo_2_random_3.condition == condition]
-            pseudo_2_random_3 = pseudo_2_random_3.set_index(["Sample_id", "celltype"])
+            pseudo_2_random_3 = pseudo_2_random_3.set_index(["Sample_id", "celltype"]).iloc[:, :len(list_peaks)]
             cor_repl_random_3 = pseudo_1.corrwith(pseudo_2_random_3, axis=1, method="spearman")
 
             hh = cor_repl.dropna().reset_index()#.groupby(["celltype"]).mean()
@@ -267,42 +274,42 @@ def randomBioreplicatesTesting(df_all_samples,
             hh_random_2.columns = ["Sample_id", "celltype", "sp"]
             hh_random_3.columns = ["Sample_id", "celltype", "sp"]
 
-
             for it in hh.Sample_id.unique():
                 for cl in hh.celltype.unique():
-                    tmp = hh[(hh.Sample_id == it) & (hh.celltype ==cl)]
-                    tmp_random = hh_random[(hh_random.Sample_id == it) & (hh_random.celltype ==cl)]
-                    tmp_random_2 = hh_random_2[(hh_random_2.Sample_id == it) & (hh_random_2.celltype ==cl)]
-                    tmp_random_3 = hh_random_3[(hh_random_3.Sample_id == it) & (hh_random_3.celltype ==cl)]
+                    if True:
+                        tmp = hh[(hh.Sample_id == it) & (hh.celltype ==cl)]
+                        tmp_random = hh_random[(hh_random.Sample_id == it) & (hh_random.celltype ==cl)]
+                        tmp_random_2 = hh_random_2[(hh_random_2.Sample_id == it) & (hh_random_2.celltype ==cl)]
+                        tmp_random_3 = hh_random_3[(hh_random_3.Sample_id == it) & (hh_random_3.celltype ==cl)]
 
-                    #print(tmp.loc[:,"sp"].values[0])
-                    #print(tmp_random)
-                    df_corr_pseudo_pred_replicates_bulk.loc[
-                        len(df_corr_pseudo_pred_replicates_bulk),:] = [it,
-                                                brain_region,
-                                                condition,
-                                                cl, 
-                                                tmp.loc[:,"sp"].values[0]]
-                    df_corr_pseudo_pred_replicates_bulk_random.loc[
-                        len(df_corr_pseudo_pred_replicates_bulk_random),
-                                                                    :] = [it,
-                                                            brain_region, 
-                                                            condition, cl, 
-                                                            tmp_random.loc[:,
-                                                                "sp"].values[0]]
+                        #print(tmp.loc[:,"sp"].values[0])
+                        #print(tmp_random)
+                        df_corr_pseudo_pred_replicates_bulk.loc[
+                            len(df_corr_pseudo_pred_replicates_bulk),:] = [it,
+                                                    brain_region,
+                                                    condition,
+                                                    cl, 
+                                                    tmp.loc[:,"sp"].values[0]]
+                        df_corr_pseudo_pred_replicates_bulk_random.loc[
+                            len(df_corr_pseudo_pred_replicates_bulk_random),
+                                                                        :] = [it,
+                                                                brain_region, 
+                                                                condition, cl, 
+                                                                tmp_random.loc[:,
+                                                                    "sp"].values[0]]
 
-                    df_corr_pseudo_pred_replicates_bulk_random_all_br.loc[
-                                            len(df_corr_pseudo_pred_replicates_bulk_random_all_br),
-                                            :] = [it, 
-                                                  brain_region,
-                                                  condition, cl, 
-                                                  tmp_random_2.loc[:,"sp"].values[0]]
-                    df_corr_pseudo_pred_replicates_bulk_random_all_condition.loc[
-                                            len(df_corr_pseudo_pred_replicates_bulk_random_all_condition),
-                                            :] = [it, 
-                                                brain_region,
-                                                condition, cl, 
-                                                tmp_random_3.loc[:,"sp"].values[0]]
+                        df_corr_pseudo_pred_replicates_bulk_random_all_br.loc[
+                                                len(df_corr_pseudo_pred_replicates_bulk_random_all_br),
+                                                :] = [it, 
+                                                      brain_region,
+                                                      condition, cl, 
+                                                      tmp_random_2.loc[:,"sp"].values[0]]
+                        df_corr_pseudo_pred_replicates_bulk_random_all_condition.loc[
+                                                len(df_corr_pseudo_pred_replicates_bulk_random_all_condition),
+                                                :] = [it, 
+                                                    brain_region,
+                                                    condition, cl, 
+                                                    tmp_random_3.loc[:,"sp"].values[0]]
 
 
             list_file = mixture.columns[6:]
@@ -379,17 +386,17 @@ def randomBioreplicatesTesting(df_all_samples,
     df_corr_pseudo_pred_bulk_bulk_random["condition"] = df_corr_pseudo_pred_bulk_bulk_random.Type.values
     df_corr_pseudo_pred_bulk_bulk["condition"] = df_corr_pseudo_pred_bulk_bulk.Type.values
 
-    df_corr_pseudo_pred_bulk_bulk["type"] = "normal"
+    df_corr_pseudo_pred_bulk_bulk["type"] = "True"
     df_corr_pseudo_pred_bulk_bulk_random["type"]= "random"
     df_bulk_bulk = pd.concat([df_corr_pseudo_pred_bulk_bulk.loc[:,~df_corr_pseudo_pred_bulk_bulk.columns.duplicated()], 
                                                   df_corr_pseudo_pred_bulk_bulk_random], 
                                                      axis=0,ignore_index=True, 
-                                                     keys=["normal","random"])
+                                                     keys=["True","random"])
 
-    df_corr_pseudo_pred_replicates_bulk["typeTest"] = "normal"
-    df_corr_pseudo_pred_replicates_bulk_random["typeTest"]= "SameConditionSameBR"
-    df_corr_pseudo_pred_replicates_bulk_random_all_br["typeTest"]= "randomAcrossBRSameCondition"
-    df_corr_pseudo_pred_replicates_bulk_random_all_condition["typeTest"]= "randomAcrossConditionSameBR"
+    df_corr_pseudo_pred_replicates_bulk["typeTest"] = "True"
+    df_corr_pseudo_pred_replicates_bulk_random["typeTest"]= "SamePhenotypeSameRegion"
+    df_corr_pseudo_pred_replicates_bulk_random_all_br["typeTest"]= "randomAcrossRegionSamePhenotype"
+    df_corr_pseudo_pred_replicates_bulk_random_all_condition["typeTest"]= "randomAcrossPhenotypeSameRegion"
 
     df_replicates_bulk = pd.concat([df_corr_pseudo_pred_replicates_bulk,
                             df_corr_pseudo_pred_replicates_bulk_random,
@@ -410,12 +417,12 @@ def plotRandomnTestComparison(df_replicates_bulk,
     fig, ax = plt.subplots(len(ct),len(conditions), figsize=(26,25))
     ax= ax.flatten()
     k=0
-    hue_order=['normal', "SameConditionSameBR",
-                    "randomAcrossBRSameCondition",
-                    "randomAcrossConditionSameBR"]
-    colors_h= { 'normal':"#7310A8", "SameConditionSameBR":"#EEF7C8", 
-                "randomAcrossBRSameCondition":"#D7F564",
-                "randomAcrossConditionSameBR":"#87A805"}
+    hue_order=['True', "SamePhenotypeSameRegion",
+                    "randomAcrossRegionSamePhenotype",
+                    "randomAcrossPhenotypeSameRegion"]
+    colors_h= { 'True':"#7310A8", "SamePhenotypeSameRegion":"#EEF7C8", 
+                "randomAcrossRegionSamePhenotype":"#D7F564",
+                "randomAcrossPhenotypeSameRegion":"#87A805"}
     sns.set(font_scale=2, style="white")
     for j, cc in enumerate(ct):
         for i, cond in enumerate(conditions):
@@ -424,9 +431,9 @@ def plotRandomnTestComparison(df_replicates_bulk,
             df_ = df_replicates_bulk[(df_replicates_bulk["condition"]==cond)
                                    &(df_replicates_bulk["celltype"]==cc)]
             pair_com = list(itertools.combinations(hue_order,2))
-            pair_com = [("normal", tt1) for tt1 in ["SameConditionSameBR",
-                        "randomAcrossBRSameCondition",
-                        "randomAcrossConditionSameBR"]]
+            pair_com = [("True", tt1) for tt1 in ["SamePhenotypeSameRegion",
+                        "randomAcrossRegionSamePhenotype",
+                        "randomAcrossPhenotypeSameRegion"]]
             if cond=="ADAD":
                 box_pair = [((bb, tt1), (bb, tt2)) for bb in 
                             order  for tt1,tt2 in pair_com if bb!="HIPP"]
@@ -434,6 +441,7 @@ def plotRandomnTestComparison(df_replicates_bulk,
                 box_pair = [((bb, tt1), (bb, tt2)) for bb in
                             order  for tt1,tt2 in pair_com]
             print(box_pair)
+            df_["spearman_correlation"] = df_["spearman_correlation"].astype(float)
             sns.boxplot(data=df_, x="Brain_region",
                         y="spearman_correlation", 
                         hue="typeTest", dodge=True,
@@ -443,17 +451,18 @@ def plotRandomnTestComparison(df_replicates_bulk,
             annotator = Annotator(ax[k], box_pair, data=df_,
                                 x="Brain_region",
                                 y="spearman_correlation",
+                                dodge=True,
                                 hue="typeTest",order=order,
                                      hue_order=hue_order)
             annotator.configure(test='t-test_ind',  text_format="star", 
                                 loc='inside', fontsize="8", 
                                 comparisons_correction="BH")
             annotator.apply_and_annotate()
-            ax[k].set_title(cond + "_"+cc)
-            ax[k].set_xlabel("")
+            #ax[k].set_title(cond + "_"+cc)
+            #ax[k].set_xlabel("")
 
-            if k<len(ct)*len(conditions)-1:
-                ax[k].get_legend().remove()
+            #if k<len(ct)*len(conditions)-1:
+            #    ax[k].get_legend().remove()
             k+=1
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.savefig(model_path + idi + "_correlation_bbetween_bulks_replicates_predictions_per_ba_norm" + format_to_save, bbox_inches="tight")
@@ -461,17 +470,17 @@ def plotRandomnTestComparison(df_replicates_bulk,
     plt.show()
     plt.close("all")
     fig, ax = plt.subplots(figsize=(8,8))
-    hue_order=['normal', "SameConditionSameBR",
-                    "randomAcrossBRSameCondition",
-                    "randomAcrossConditionSameBR"]
-    colors_h= { 'normal':"#7310A8", "SameConditionSameBR":"#EEF7C8", 
-                "randomAcrossBRSameCondition":"#D7F564",
-                "randomAcrossConditionSameBR":"#87A805"}
+    hue_order=['True', "SamePhenotypeSameRegion",
+                    "randomAcrossRegionSamePhenotype",
+                    "randomAcrossPhenotypeSameRegion"]
+    colors_h= { 'True':"#7310A8", "SamePhenotypeSameRegion":"#EEF7C8", 
+                "randomAcrossRegionSamePhenotype":"#D7F564",
+                "randomAcrossPhenotypeSameRegion":"#87A805"}
     df_ = df_replicates_bulk
     pair_com = list(itertools.combinations(hue_order,2))
-    pair_com = [("normal", tt1) for tt1 in ["SameConditionSameBR",
-                "randomAcrossBRSameCondition",
-                "randomAcrossConditionSameBR"]]
+    pair_com = [("True", tt1) for tt1 in ["SamePhenotypeSameRegion",
+                "randomAcrossRegionSamePhenotype",
+                "randomAcrossPhenotypeSameRegion"]]
     if cond=="ADAD":
         box_pair = [((bb, tt1), (bb, tt2)) for bb in 
                     order  for tt1,tt2 in pair_com if bb!="HIPP"]
@@ -479,6 +488,7 @@ def plotRandomnTestComparison(df_replicates_bulk,
         box_pair = [((bb, tt1), (bb, tt2)) for bb in
                     order  for tt1,tt2 in pair_com]
     print(box_pair)
+    df_["spearman_correlation"] = df_["spearman_correlation"].astype(float)
     sns.boxplot(data=df_, x="Brain_region",
                 y="spearman_correlation", 
                 hue="typeTest", dodge=True,
@@ -487,6 +497,7 @@ def plotRandomnTestComparison(df_replicates_bulk,
                hue_order=hue_order, linewidth=0.5)
     annotator = Annotator(ax, box_pair, data=df_,
                         x="Brain_region",
+                        dodge=True,
                         y="spearman_correlation",
                         hue="typeTest",order=order,
                              hue_order=hue_order)
@@ -494,7 +505,7 @@ def plotRandomnTestComparison(df_replicates_bulk,
                         loc='inside', fontsize="8", 
                         comparisons_correction="BH")
     annotator.apply_and_annotate()
-    ax.set_xlabel("")
+    #ax.set_xlabel("")
 
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.savefig(model_path + idi + "_correlation_between_bulks_replicates_predictions_ALL_norm" + format_to_save, bbox_inches="tight")
@@ -505,7 +516,7 @@ def plotComparisonCorrelation(df_replicates_bulk,
                                 model_path,
                                 disease,
                                 order):
-    colors_ct={"Neur":"#75485E", 
+    colors_ct={"NEU":"#75485E", 
                 "INH":"#75485E",
             "EXC":"#C23E7E",
                 "Glials":"#51A3A3",
@@ -517,13 +528,14 @@ def plotComparisonCorrelation(df_replicates_bulk,
                 "AST":"#C3E991",
            "bulk":"#cccccc", "CTRH":"#B6F2EC", "SPOR":"#F7D7C8"}##DFCC74
 
-    df_corr_pseudo_pred_replicates_bulk = df_replicates_bulk[df_replicates_bulk["typeTest"] == "normal"]
+    df_corr_pseudo_pred_replicates_bulk = df_replicates_bulk[df_replicates_bulk["typeTest"] == "True"]
     pair_com = list(itertools.combinations(df_corr_pseudo_pred_replicates_bulk.celltype.unique().tolist(),2))
     box_pair = [((bb, tt1), (bb, tt2)) for bb in order  for tt1,tt2 in pair_com ]
     sns.set(font_scale=2, style="white")
     fig, ax = plt.subplots(figsize=(18,12))
     print(pair_com)
     box_pair = [((bb, tt1), (bb, tt2)) for bb in order  for tt1,tt2 in pair_com ]
+    df_corr_pseudo_pred_replicates_bulk["spearman_correlation"] = df_corr_pseudo_pred_replicates_bulk["spearman_correlation"].astype(float)
 
     sns.boxplot(ax=ax, data=df_corr_pseudo_pred_replicates_bulk,
                     x="Brain_region",
@@ -533,6 +545,7 @@ def plotComparisonCorrelation(df_replicates_bulk,
                         linewidth=0.5
                         )
     annotator = Annotator(ax,box_pair,
+            dodge=True,
                     data=df_corr_pseudo_pred_replicates_bulk,
                     x="Brain_region", y="spearman_correlation", 
                         hue="celltype")
@@ -561,7 +574,7 @@ def plotCorrelationBetweenRandomPeakOutput(df_bulk_bulk,
     conditions = df_bulk_bulk.condition.unique().tolist()
     fig, axes = plt.subplots(1,len(conditions), figsize=(15,6))
     if len(conditions)<=1:
-        ax = axes
+        ax = [axes]
     else:
         ax = axes.flatten()
     k=0
@@ -581,7 +594,7 @@ def plotCorrelationBetweenRandomPeakOutput(df_bulk_bulk,
     plt.show()
     
 def plotOutputPseudoBulkInputComparison(df_bulk_bulk, model_path, disease):
-    df_corr_pseudo_pred_bulk_bulk = df_bulk_bulk[df_bulk_bulk["type"] == "normal"]
+    df_corr_pseudo_pred_bulk_bulk = df_bulk_bulk[df_bulk_bulk["type"] == "True"]
     colors={"CTRL":"#28A89C", "LOAD":"#F57764", "LOPD":"#F57764", "CTRH":"#B6F2EC", "SPOR":"#F7D7C8", "ADAD":"#A84434"}
     sns.boxplot(data=df_corr_pseudo_pred_bulk_bulk, x="Brain_region", y="mse", hue="condition", palette=[".8", "0.8"], linewidth=0.3)
 
@@ -605,15 +618,15 @@ def main():
     args = parser.parse_args()
     model_results = args.model_results
     annot_pa = args.annotation_path
-    bulk_path = args.path + "count_from_sc_my_peaks_"
     disease = args.disease
+    bulk_path = args.path + "count_from_sc_my_peaks_"
     if disease == "PD":
         list_conds = ["CTRL", "LOPD"]
-        list_conds_ini = ["CTRL", "LOPD"]
+        list_conds_ini = ["CTRL", "LOPD", "ADPD"]
 
-        List_brain_regions = ["CAUD", "MDFG", "PTMN", "HIPP"]
-        order = ["CAUD","MDFG", "PTMN","HIPP"]
-        pairs=[("CTRL", "LOPD")]
+        List_brain_regions = ["CAUD", "MDFG", "PTMN", "HIPP", "SMTG", "SUNI"]
+        order = ["CAUD","MDFG", "PTMN","HIPP", "SMTG", "SUNI"]
+        pairs=[("CTRL", "LOPD"), ("CTRL", "ADPD"), ("ADPD", "LOPD")]
         key_label="condition"
     else:
 
@@ -673,8 +686,8 @@ def main():
                               order,
                               format_to_save=".svg")
     plotComparisonCorrelation(df_replicates_bulk, savepath, disease, order)
-    plotCorrelationBetweenRandomPeakOutput(df_bulk_bulk, savepath, disease)
-    plotOutputPseudoBulkInputComparison(df_bulk_bulk, savepath, disease)
+    #plotOutputPseudoBulkInputComparison(df_bulk_bulk, savepath, disease)
+    #plotCorrelationBetweenRandomPeakOutput(df_bulk_bulk, savepath, disease)
 
 if __name__ == "__main__":
     main()

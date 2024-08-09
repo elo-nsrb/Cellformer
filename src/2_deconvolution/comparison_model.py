@@ -28,6 +28,7 @@ import seaborn as sns
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 #colorsmaps = sszpalette.register()
 import matplotlib.colors as mcolors
+from joblib import Parallel, delayed
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -156,7 +157,7 @@ def get_clf(clf_name, n_inputs=None, n_outputs=None):
 
 
 def compute_metrics(X_pred, X_gt, celltypes,
-                metrics=["spearman", "rmse", "R2", "auc", "auprc"]):
+        metrics=["spearman","pearson", "rmse"]): #, "R2", "auc", "auprc"]):
     df_metrics = pd.DataFrame(columns=["celltype", "metrics", "res"])
     for met in metrics:
         for i,ct in enumerate(celltypes):
@@ -165,25 +166,42 @@ def compute_metrics(X_pred, X_gt, celltypes,
     return df_metrics
 
 def compute_metrics_per_subject(X_pred, X_gt, celltypes,list_sub,
-            metrics=["spearman", "rmse",  "auc", "auprc"]):
+            metrics=["spearman","pearson", "rmse"]):# "R2", "auc", "auprc"]):
     df_metrics = pd.DataFrame(columns=["celltype", "metrics",
                                     "res", "individualID"])
     for met in metrics:
         for i,ct in enumerate(celltypes):
             for j,sb in enumerate(list_sub):
-                res  = get_metrics(X_gt[j,i,:], X_pred[j,i,:], met)
-                df_metrics.loc[len(df_metrics),:] = [ct, met, res, sb]
+                if X_gt[j,i,:].sum()>0:
+                    res  = get_metrics(X_gt[j,i,:], X_pred[j,i,:], met)
+                    df_metrics.loc[len(df_metrics),:] = [ct, met, res, sb]
     return df_metrics
 
-
+def get_metrics_par(X, X_pred, met, ct, genes):
+    res  = get_metrics(X, X_pred, met)
+    return res, ct, genes
+def compute_metrics_per_genes(X_pred, X_gt, celltypes,list_genes,
+        metrics=["spearman","pearson", "rmse"]): #, "R2", "auc", "auprc"]):
+    df_metrics = pd.DataFrame(columns=["celltype", "metrics",
+                                    "res", "genes"])
+    for met in metrics:
+        out = Parallel(n_jobs=30, verbose=1)(
+                delayed(get_metrics_par)(
+                        X_gt[:,i,j],
+                        X_pred[:,i,j],
+                        met, ct, sb) for i,ct in enumerate(celltypes) for j,sb in enumerate(list_genes))
+        for kl,it in enumerate(out):
+            df_metrics.loc[len(df_metrics),:] = [it[1], met, it[0], it[2]]
+    return df_metrics
 def get_metrics(X_gt, X_pred, metric):
     if metric=="spearman":
         if len(X_gt.shape)>1:
             ress = []
             for it in range(X_gt.shape[0]):
                 res, _ = spearmanr(X_gt[it, :], X_pred[it, :], axis=None)
-                if not np.isnan(res):
-                    ress.append(res)
+                if np.isnan(res):
+                    res = 0
+                ress.append(res)
             res= np.mean(ress)
         else:
             res, _ = spearmanr(X_gt, X_pred)
@@ -196,9 +214,9 @@ def get_metrics(X_gt, X_pred, metric):
             ress = []
             for it in range(X_gt.shape[0]):
                 res, _ = pearsonr(X_gt[it,:], X_pred[it,:])
-                if not np.isnan(res):
-                    #res = 0
-                    ress.append(res)
+                if np.isnan(res):
+                    res = 0
+                ress.append(res)
             res= np.mean(ress)
         else:
             res, _ = pearsonr(X_gt, X_pred)
@@ -207,19 +225,20 @@ def get_metrics(X_gt, X_pred, metric):
     elif metric=="auc":
         b_gt = np.zeros_like(X_gt)
         b_gt[X_gt>0] = 1
-        try:
-            res = metrics.roc_auc_score(b_gt.flatten(),
+        res = metrics.roc_auc_score(b_gt.flatten(),
                                     X_pred.flatten())
-        except:
-            res = np.nan
     elif metric=="auprc":
         b_gt = np.zeros_like(X_gt)
         b_gt[X_gt>0] = 1
-        try:
-            res = metrics.average_precision_score(b_gt.flatten(),
+        res = metrics.average_precision_score(b_gt.flatten(),
                                     X_pred.flatten())
-        except:
-            res = np.nan
+    elif metric=="prevalence":
+        b_gt = np.zeros_like(X_gt)
+        b_gt[X_gt>0] = 1
+        x = b_gt.flatten()
+        y = X_pred.flatten()
+
+        res = x[x==1].sum()/len(x)
     return res
 
 def get_metrics_per_subject(X_gt, X_pred, metric):
