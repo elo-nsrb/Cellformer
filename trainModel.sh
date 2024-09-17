@@ -40,6 +40,7 @@ do
     esac
 done
 
-python src/2_deconvolution/train.py --model_path $model_path --model SepFormerTasNet
+python src/2_deconvolution/cvTrain.py --model_path $model_path --model SepFormerTasNet
 
 echo "Model trained!"
+

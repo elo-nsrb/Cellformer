@@ -109,26 +109,22 @@ optional arguments:
 ```
 Please modify the path to the data folder in `train.yml`.
 
-### 5. Validation using pseudo single cell ATAC-seq data
-Validation of the model can done using pseudobulk data by running:
+### 5. Model testing using trained model
+Model testing can done using bulk or pseudobulk data by running:
 
 ```
-./validationModel.sh --model_path cellformer/ --peak_matrix ./data/validation_data/aggregated_sc_mixture.csv --groundtruth ./data/validation_data/agg_sc_separate.npz
+./validation.sh --model_path cellformer/ 
 ```
 
 ```
 Usage: validationModel  -p | --model_path MODEL_PATH
-                        -m | --peak_matrix PEAK_MATRIX
-                        -g | --groundtruth GROUNDTRUTH
                         [ -h | --help  ]
 positional arguments:
 -p, --model_path        Path to model directory with train.yml
--m, --peak_matrix       Peak matrix to deconvolute
--m, --groundtruth       Ground truth file
 
 optional arguments:
 -h, --help              Show help message and exit
 ```
-
+Please note that in the new version, the mask is computed on the cross validation performance matrix. We recommend to remove cell type specific peaks with a spearman correlation <0.2 across samples.
 ## Licence
 This project is covered under the [GNU General Public License v3.0](https://github.com/elo-nsrb/Cellformer/blob/main/LICENSE)
