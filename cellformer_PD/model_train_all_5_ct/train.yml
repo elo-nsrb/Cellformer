@@ -1,0 +1,93 @@
+#### Conv-TasNet Setting
+name: DPTNet
+gpu_ids: [0, 1, 2]
+
+
+#### Dataset Configure
+datasets:
+  celltypes: ['AST', 'MIC','NEU', 'OPCs', 'OLD']
+  celltype_to_use: ['AST', 'MIC','NEU', 'OPCs', 'OLD']
+
+  DataName: "Brain2"
+  name: cell_count_norm_5_ct
+  add_pure: false
+  hdf_dir: /home/eloiseb/experiments/deconv_peak/hdf_ct_5_a/
+  dataset_dir: /home/eloiseb/data/ATAC-seq_2024/
+  sample_list_file: /home/eloiseb/data/ATAC-seq_2024/list_sample_id_ct_5.txt
+  binarize: false
+  binarize_input: false
+  normalizeMax: true
+  cut_val: 0.2
+  holdout: true
+  cv_func: "kfold"
+  k: 2
+  normalize: false
+  offset_input: 1
+  ratio: false
+  ratio_input: false
+  only_training: True
+
+  filter_intergenic: false
+  num_workers: 1
+  fs: 1
+  chunk_len: 900
+  chunk_size: 900  #### fs*chunk_len
+
+#### training settings: learning rate scheme, loss
+train:
+  optimizer: adam
+  min_lr: !!float 1e-6
+  factor: 0.5
+  logging_period: 200
+  clip_norm: ~
+  num_epochs: 50
+  checkpoint: DPTNet
+
+optimizer_kwargs:
+  lr: !!float 1e-3
+  weight_decay: !!float 1e-5
+
+
+#### resume model
+resume:
+  resume_state: false
+
+filterbank:
+    kernel_size: 16
+    n_filters: 64
+    stride: 8
+masknet:
+    n_src: 5
+    bidirectional: true
+    chunk_size: 250
+    dropout: 0
+    ff_activation: relu
+    ff_hid: 256
+    hop_size: 125
+    in_chan: 64
+    mask_act: relu
+    n_repeats: 1
+    norm_type: gLN
+    out_chan: 64
+optim:
+    lr: 0.001
+    optimizer: adam
+    weight_decay: 0.0
+positional arguments: {}
+training:
+    comet: false
+    accumulate_grad_batches: 3
+    batch_size: 32
+    early_stop: true
+    patience: 5
+    epochs: 30
+    save_epochs: 1
+    gradient_clipping: 5
+    weights: "None"
+    half_lr: true
+    num_workers: 8
+    loss: mse_no_pit
+scheduler:
+    d_model: 64
+    noam_scale: 0.2
+    steps_per_epoch: 10000

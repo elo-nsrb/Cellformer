@@ -40,11 +40,11 @@ def defineMask(input_signals, pred_signals, celltypes,
             pp = pred_signals[:,it,:]*tmp[it,:]
             pp = pp.ravel()
             tt = input_signals[:,it,:].ravel()
-            print("threshold %f"%th)
+            #print("threshold %f"%th)
             sp, pval = stats.spearmanr(tt, pp)
-            print("spearman, pval: %f, %s"%(sp, pval))
+            #print("spearman, pval: %f, %s"%(sp, pval))
             r2 = r2_score(tt, pp)
-            print("R2: %f"%(r2))
+            #print("R2: %f"%(r2))
             if math.isnan(sp):
                 sp = 0
             if math.isnan(r2):

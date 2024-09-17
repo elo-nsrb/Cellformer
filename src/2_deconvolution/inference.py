@@ -11,11 +11,7 @@ from pprint import pprint
 import torch.nn as nn 
 
 import asteroid
-from asteroid.metrics import get_metrics
-from asteroid.models import save_publishable
 from asteroid.utils import tensors_to_device
-
-from asteroid.models import DPRNNTasNet
 from data import *
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score, roc_curve, f1_score
 from sklearn.metrics import auc,precision_recall_curve, r2_score
@@ -201,77 +197,77 @@ def main(args):
         testset_idx = mixtures[mixtures.Sample_num == SAMPLE_ID_TEST].index.values.tolist() 
         trainset_idx = mixtures[mixtures.Sample_num != SAMPLE_ID_TEST].index.values.tolist() 
         print(trainset_idx)
-        plot_pred_gt_reg(separate[trainset_idx,:,:], 
-                sources_res_np[trainset_idx, :,:], savedir,
-                        celltypes, name + "before_thresh_train_only",  
-                        normalizeMax= opt['datasets']["normalizeMax"],
-                        pure=False, binary=opt["datasets"]["binarize"])
-        if not os.path.exists(os.path.join(args.model_path, "MASK_OK.npy")):
-            mask = defineMask(separate[trainset_idx,:,:],
-                                sources_res_np[trainset_idx, : :],
-                                celltypes,
-                                savedir,
-                                name + "MASK_TRAINSET")
-            np.save(args.model_path + "MASK.npy",mask)
-        else:
-            mask = np.load(args.model_path + "MASK.npy")
+        #plot_pred_gt_reg(separate[trainset_idx,:,:], 
+        #        sources_res_np[trainset_idx, :,:], savedir,
+        #                celltypes, name + "before_thresh_train_only",  
+        #                normalizeMax= opt['datasets']["normalizeMax"],
+        #                pure=False, binary=opt["datasets"]["binarize"])
+        #if not os.path.exists(os.path.join(args.model_path, "MASK_OK.npy")):
+        #    mask = defineMask(separate[trainset_idx,:,:],
+        #                        sources_res_np[trainset_idx, : :],
+        #                        celltypes,
+        #                        savedir,
+        #                        name + "MASK_TRAINSET")
+        #    np.save(args.model_path + "MASK.npy",mask)
+        #else:
+        #    mask = np.load(args.model_path + "MASK.npy")
 
-        (_, pred_thres,
-            optimal_thrs) = plot_aurc_from_sig(separate[trainset_idx, :,:], 
-                        sources_res_np[trainset_idx, :, :],
-                            celltypes, savedir,
-                            binarize_type="threshold", threshold=thres,
-                            binary=opt["datasets"]["binarize"], 
-                            name=name + "before_thres_Train_only", 
-                            strict=strict,
-                            normalize=opt['datasets']["normalizeMax"])
-        sources_res_np = sources_res_np*mask
+        #(_, pred_thres,
+        #    optimal_thrs) = plot_aurc_from_sig(separate[trainset_idx, :,:], 
+        #                sources_res_np[trainset_idx, :, :],
+        #                    celltypes, savedir,
+        #                    binarize_type="threshold", threshold=thres,
+        #                    binary=opt["datasets"]["binarize"], 
+        #                    name=name + "before_thres_Train_only", 
+        #                    strict=strict,
+        #                    normalize=opt['datasets']["normalizeMax"])
+        #sources_res_np = sources_res_np*mask
 
-        (_, pred_thres,
-            optimal_thrs) = plot_aurc_from_sig(separate[trainset_idx, :,:], 
-                        sources_res_np[trainset_idx, :, :],
-                            celltypes, savedir,
-                            binarize_type="threshold", threshold=thres,
-                            binary=opt["datasets"]["binarize"], 
-                            name=name + "Masked_train_only", 
-                            strict=strict,
-                            normalize=opt['datasets']["normalizeMax"])
-        print("optimal thresholds:")
-        print(optimal_thrs)
-        for k, ct in enumerate(celltypes):
-            df_ = pd.DataFrame(sources_res_np[:,k,:], 
-                                index=mixtures.index, 
-                                columns=mixtures.columns.tolist()[:-1])
-            df_["celltype"] = ct
-            df_res.append(df_)
-        df_res_f = pd.concat(df_res, axis=0)
-        df_res_f.to_csv(savedir + name +"MASKED_optimalthres.csv")
-        np.save(savedir + name +"MASKED_optimalthres.npy", pred_thres)
-        np.save(savedir + name +"MASKED.npy", sources_res_np)
-        plot_pred_gt_reg(separate[testset_idx, :,:], 
-                        sources_res_np[testset_idx, :, :], 
-                            savedir,
-                        celltypes, 
-                        name + "TESTSET_filter_masked", 
-                        normalizeMax= opt['datasets']["normalizeMax"],
-                            binary=opt["datasets"]["binarize"], 
-                        pure=False )
-        (_, _, _) = plot_aurc_from_sig(separate[testset_idx, :,:], 
-                            sources_res_np[testset_idx, :,:],
-                            celltypes, savedir,
-                            binarize_type="threshold", threshold=thres,
-                            binary=opt["datasets"]["binarize"], 
-                            name=name + "TESTSET_filtered_masked", 
-                            strict=strict,
-                            normalize=opt['datasets']["normalizeMax"])
-        (_, _, _) = plot_aurc_from_sig(separate, 
-                            sources_res_np,
-                            celltypes, savedir,
-                            binarize_type="threshold", threshold=thres,
-                            binary=opt["datasets"]["binarize"], 
-                            name=name + "ALL_filtered_masked", 
-                            strict=strict,
-                            normalize=opt['datasets']["normalizeMax"])
+        #(_, pred_thres,
+        #    optimal_thrs) = plot_aurc_from_sig(separate[trainset_idx, :,:], 
+        #                sources_res_np[trainset_idx, :, :],
+        #                    celltypes, savedir,
+        #                    binarize_type="threshold", threshold=thres,
+        #                    binary=opt["datasets"]["binarize"], 
+        #                    name=name + "Masked_train_only", 
+        #                    strict=strict,
+        #                    normalize=opt['datasets']["normalizeMax"])
+        ##print("optimal thresholds:")
+        ##print(optimal_thrs)
+        #for k, ct in enumerate(celltypes):
+        #    df_ = pd.DataFrame(sources_res_np[:,k,:], 
+        #                        index=mixtures.index, 
+        #                        columns=mixtures.columns.tolist()[:-1])
+        #    df_["celltype"] = ct
+        #    df_res.append(df_)
+        #df_res_f = pd.concat(df_res, axis=0)
+        #df_res_f.to_csv(savedir + name +"MASKED_optimalthres.csv")
+        ##np.save(savedir + name +"MASKED_optimalthres.npy", pred_thres)
+        #np.save(savedir + name +"MASKED.npy", sources_res_np)
+        #plot_pred_gt_reg(separate[testset_idx, :,:], 
+        #                sources_res_np[testset_idx, :, :], 
+        #                    savedir,
+        #                celltypes, 
+        #                name + "TESTSET_filter_masked", 
+        #                normalizeMax= opt['datasets']["normalizeMax"],
+        #                    binary=opt["datasets"]["binarize"], 
+        #                pure=False )
+        #(_, _, _) = plot_aurc_from_sig(separate[testset_idx, :,:], 
+        #                    sources_res_np[testset_idx, :,:],
+        #                    celltypes, savedir,
+        #                    binarize_type="threshold", threshold=thres,
+        #                    binary=opt["datasets"]["binarize"], 
+        #                    name=name + "TESTSET_filtered_masked", 
+        #                    strict=strict,
+        #                    normalize=opt['datasets']["normalizeMax"])
+        #(_, _, _) = plot_aurc_from_sig(separate, 
+        #                    sources_res_np,
+        #                    celltypes, savedir,
+        #                    binarize_type="threshold", threshold=thres,
+        #                    binary=opt["datasets"]["binarize"], 
+        #                    name=name + "ALL_filtered_masked", 
+        #                    strict=strict,
+        #                    normalize=opt['datasets']["normalizeMax"])
         keys = ["peakType", "distToTSS", "distToGeneStart", "chrm"]
         #for kk in keys:
         #    plot_heatmap_r2_score(separate, sources_res, savedir,
