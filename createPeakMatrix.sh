@@ -51,7 +51,7 @@ do
     esac
 done
 
-#Rscript ./src/1_preprocessing/peakCalling.R --path_data $input_dir --output $path_data --metadata $metadata
+Rscript ./src/1_preprocessing/peakCalling.R --path_data $input_dir --output $path_data --metadata $metadata
 
 python src/1_preprocessing/createPeakMatrix.py --path $path_data --savepath $path_data
 
